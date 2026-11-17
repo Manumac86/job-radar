@@ -1,0 +1,4 @@
+#!/bin/sh
+# In the owner's private checkout only the clean `public` branch may be pushed (public-release
+# design D2). Public clones and forks push normally.
+exec node scripts/pre-push.ts "$1" "$2"

@@ -1,0 +1,27 @@
+schema: spec-driven
+
+context: |
+  Job Radar is a single-user, local-only app that finds remote job offers and
+  freelance projects, scores them against the owner's profile, drafts
+  applications, and tracks the hiring pipeline. Open source; each user runs their own copy.
+  Hard constraints an agent cannot infer from the code:
+  - Local only at runtime: all services bind to 127.0.0.1, no telemetry, no
+    auto-update. The owner's private checkout may push only the clean `public`
+    branch (publish:sync, privacy-scanned); never its main history.
+  - LLM access goes through the owner's Claude subscription via the local
+    Claude Code CLI (AI SDK + ai-sdk-provider-claude-code). No Anthropic API key.
+  - The app MUST NEVER submit an application, proposal or message on any site.
+    It drafts; the owner reviews and sends manually.
+  - The app MUST NOT store site passwords. Logged-in access uses a dedicated,
+    isolated browser profile where the owner logs in manually.
+  - Stack: TypeScript only (no Python). pnpm workspaces + Turborepo (telemetry off). Next.js 16+ (App Router), Tailwind v4,
+    shadcn/ui, Vercel AI SDK v7, Node.js + Express worker, SQLite + Drizzle,
+    Playwright, Docker Compose. pnpm workspaces.
+  - UI copy in English; the owner reads Spanish and English.
+
+rules:
+  tasks:
+    - Every task states how it is verified (test, command or observable behavior)
+    - Tests land with the group that needs them, not in a final group
+  design:
+    - Record alternatives considered for each decision

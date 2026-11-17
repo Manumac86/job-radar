@@ -1,0 +1,48 @@
+{
+  "name": "job-radar",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.5.1",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "prepare": "node scripts/install-hooks.ts",
+    "build": "TURBO_TELEMETRY_DISABLED=1 turbo run build",
+    "typecheck": "TURBO_TELEMETRY_DISABLED=1 turbo run typecheck",
+    "lint": "TURBO_TELEMETRY_DISABLED=1 turbo run lint",
+    "test": "TURBO_TELEMETRY_DISABLED=1 turbo run test",
+    "typecheck:root": "tsc -p tsconfig.json",
+    "lint:root": "eslint scripts eslint.config.js",
+    "test:root": "vitest run --dir scripts",
+    "check:local": "node scripts/check-local.ts",
+    "publish:sync": "node scripts/publish-sync.ts",
+    "release:images": "node scripts/release-images.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "verify": "pnpm typecheck:root && pnpm typecheck && pnpm lint:root && pnpm lint && pnpm format:check && pnpm test:root && pnpm test && pnpm test:ui && pnpm check:local",
+    "db:restore": "pnpm --filter @job-radar/db db:restore",
+    "db:generate": "pnpm --filter @job-radar/db db:generate",
+    "llm:smoke": "pnpm --filter @job-radar/core llm:smoke",
+    "source:dry-run": "pnpm --filter @job-radar/worker source:dry-run",
+    "test:ui": "TURBO_TELEMETRY_DISABLED=1 turbo run build --filter=@job-radar/web && pnpm --filter @job-radar/web test:ui",
+    "dev": "TURBO_TELEMETRY_DISABLED=1 turbo run dev --filter=@job-radar/web --filter=@job-radar/worker",
+    "start": "docker compose up -d --build",
+    "desktop:build": "pnpm --filter @job-radar/desktop build:app",
+    "desktop:smoke": "pnpm --filter @job-radar/desktop smoke"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "22.20.5",
+    "eslint": "10.15.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.14.0",
+    "prettier": "3.10.1",
+    "tsx": "4.23.15",
+    "turbo": "2.11.11",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.2",
+    "vitest": "5.1.0"
+  }
+}

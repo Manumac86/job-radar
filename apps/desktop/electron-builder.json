@@ -1,0 +1,48 @@
+{
+  "appId": "local.jobradar.desktop",
+  "productName": "Job Radar",
+  "directories": {
+    "output": "build/release",
+    "buildResources": "assets"
+  },
+  "files": ["dist/**", "package.json", "!dist/**/*.map"],
+  "extraResources": [
+    {
+      "from": "build/stage/profile-seed",
+      "to": "profile-seed"
+    },
+    {
+      "from": "build/stage/drizzle",
+      "to": "drizzle"
+    },
+    {
+      "from": "assets",
+      "to": "assets",
+      "filter": ["*.png", "*.html"]
+    }
+  ],
+  "asar": true,
+  "npmRebuild": false,
+  "nodeGypRebuild": false,
+  "publish": null,
+  "mac": {
+    "target": [
+      {
+        "target": "dmg",
+        "arch": ["arm64"]
+      },
+      {
+        "target": "dir",
+        "arch": ["arm64"]
+      }
+    ],
+    "identity": null,
+    "category": "public.app-category.productivity",
+    "darkModeSupport": true
+  },
+  "dmg": {
+    "title": "Job Radar",
+    "writeUpdateInfo": false
+  },
+  "electronDist": "node_modules/electron/dist"
+}

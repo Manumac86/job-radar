@@ -1,0 +1,36 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "stream",
+  "remoteCache": {
+    "enabled": false
+  },
+  "globalDependencies": ["tsconfig.base.json", "eslint.config.js", "pnpm-lock.yaml"],
+  "globalPassThroughEnv": [
+    "WEB_PORT",
+    "WORKER_PORT",
+    "WORKER_HOST",
+    "WORKER_URL",
+    "WEB_BASE_URL",
+    "JOB_RADAR_*",
+    "LOG_LEVEL",
+    "NEXT_TELEMETRY_DISABLED",
+    "BUILD_STANDALONE"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"]
+    },
+    "lint": {},
+    "test": {
+      "dependsOn": ["^typecheck"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

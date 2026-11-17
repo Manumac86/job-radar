@@ -1,0 +1,32 @@
+# Local data and secrets (never committed)
+data/
+secrets/
+.env
+.env.*
+
+# Dependencies and build output
+node_modules/
+dist/
+.next/
+out/
+build/
+coverage/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# Logs
+*.log
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+test-results/
+playwright-report/
+
+# Never commit stray secret files, wherever they are saved
+*token*
+*.pem
+*.key
+app_password*

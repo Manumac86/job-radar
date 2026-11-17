@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:media="http://search.yahoo.com/mrss">
+  <channel>
+    <title>We Work Remotely: Full-Stack Programming Jobs</title>
+    <link>https://weworkremotely.com/categories/remote-full-stack-programming-jobs.rss</link>
+    <description>We Work Remotely: Full-Stack Programming Jobs</description>
+    <language>en-US</language>
+    <ttl>60</ttl>
+    <item>
+      <title>Movement Labs: Senior Data Engineers</title>
+      <region>USA Only</region>
+      <country></country>
+      <state></state>
+      <skills>Python, SQL, System Design, BigQuery, Technical Documentation, and Data Engineering</skills>
+      <category>Full-Stack Programming</category>
+      <type>Full-Time</type>
+      <description>
+
+&lt;p&gt;
+  &lt;strong&gt;Headquarters:&lt;/strong&gt; United States
+    &lt;br /&gt;&lt;strong&gt;URL:&lt;/strong&gt; &lt;a href="https://jobs.workable.com/company/sx6tzFKwyUTPcquYzQkRFu/jobs-at-movement-labs"&gt;https://jobs.workable.com/company/sx6tzFKwyUTPcquYzQkRFu/jobs-at-movement-labs&lt;/a&gt;
+&lt;/p&gt;
+
+&lt;p&gt;Movement Labs is an incubator and consulting firm that uses technology, data, and experimentation to stop fascism and build progressive power. We help progressives win and defeat MAGA extremists through year-round work grounded in research and real-world testing. Our team partners with leading advocacy groups, grassroots organizers, and electoral campaigns to develop innovative tactics, win elections, and shift power for the long term.&lt;/p&gt;&lt;p&gt;As the R&amp;amp;D powerhouse for the progressive movement, we’ve run over 100 randomized control trials (RCTs) on voter behavior and helped hundreds of organizations increase their impact. We work hard, and the environment evolves rapidly. We are adaptable, nimble, and shift quickly as needed to meet the moment. We are looking for candidates that thrive in this type of environment.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;We are looking for 2 roles, Senior and Mid-level Data Engineers to join the Tech department. You will be a part of an 8-person data engineering team, and will have a lot of ownership and ability to make an impact. You’ll work cross-functionally in a collaborative, startup-like environment.&amp;nbsp;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;What the work looks like for our data team:&amp;nbsp;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Design and implement scalable data architecture for targeting and engagement&lt;/li&gt;&lt;li&gt;Serve as technical partner to program teams&lt;/li&gt;&lt;li&gt;Extend our foundational datasets to facilitate new outreach strategies&lt;/li&gt;&lt;li&gt;Load-test our systems to prepare for elections&amp;nbsp;&lt;/li&gt;&lt;li&gt;Maintain key datasets for polling images and precinct cross-matching&lt;/li&gt;&lt;li&gt;Develop standardized experimental frameworks for testing campaign effectiveness&lt;/li&gt;&lt;li&gt;Build AI tooling that makes our own team faster — QC agents for data deliveries, the evals to trust them, and context systems that keep our repos self-documenting&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Our data team’s work mixes greenfield builds, pragmatic plumbing, incident response, and operational work. The relative mix shifts with the political calendar.&lt;/p&gt;&lt;p&gt;This role is fully remote. This position has an initial term of six (6) months beginning on the employee's start date.&lt;/p&gt;&lt;p&gt; &lt;/p&gt;Responsibilities&lt;ul&gt;&lt;li&gt;Shape the pipelines and integrations feeding our RCT platform and our foundational voter datasets: the APIs, replication, federation layers, experiment randomization, and the failure modes that come with running data systems for hundreds of partner organizations on a non-negotiable political calendar&lt;/li&gt;&lt;li&gt;Extend our data platform and orchestration layer, and optimize it for cost, runtime, and reliability so it holds up during the elections, with millions of outreach attempts&lt;/li&gt;&lt;li&gt;Lead projects that span multiple systems and teams — scoping, designing, and driving them to real milestones&lt;/li&gt;&lt;li&gt;Hold the bar on quality — test and validate your own work, review teammates' code, and mentor through that review&lt;/li&gt;&lt;li&gt;Document and communicate — make your systems understandable to teammates, stakeholders, and non-engineers&lt;/li&gt;&lt;li&gt;Rotate through on-call and rapid response, including evenings and weekends during high-stakes moments like election cycles&lt;/li&gt;&lt;/ul&gt;
+&lt;ul&gt;&lt;li&gt;Passionate about progressive politics and leveraging data, technology, organizing and research to build political power&lt;/li&gt;&lt;li&gt;3-6+ years of experience (Senior or Mid-level) in designing, building, and operating production data pipelines and integrations&lt;/li&gt;&lt;li&gt;Strong proficiency in SQL and Python&lt;/li&gt;&lt;li&gt;Experience building production software across a modern data stack — cloud data warehouses (BigQuery or similar), a transformation framework like dbt, and an orchestrator like Dagster or Airflow&lt;/li&gt;&lt;li&gt;A track record of leading technical work across multiple systems or teams, and scoping ambiguous problems end-to-end&lt;/li&gt;&lt;li&gt;Sound judgment about when to refactor, when to ship pragmatically, and how to leave systems better than you found them&lt;/li&gt;&lt;li&gt;Strong written communication — you document what you build and can explain complex systems to non-engineers&lt;/li&gt;&lt;li&gt;Genuine commitment to the mission of stopping fascism and building progressive power, and comfort operating on a political calendar&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Nice to Have:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Experience in the progressive, political, advocacy, or nonprofit sector — including awareness of c3/c4/PAC boundaries and the sensitivities of political and voter data&lt;/li&gt;&lt;li&gt;Familiarity with election results, voter file data, and the tools campaigns use to organize, text, and contact voters&lt;/li&gt;&lt;li&gt;Experience on Google Cloud Platform &lt;/li&gt;&lt;li&gt;Experience in on-call rotations and mentoring less-experienced engineers&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;We’re looking for candidates with a wide range of skills and experience. If you’re excited about the job, even if you don’t match all the characteristics, we encourage you to apply. &lt;/p&gt;
+&lt;ul&gt;&lt;ul&gt;&lt;li&gt;Base salary of $90,000-$150,000&lt;/li&gt;&lt;li&gt;Excellent health, dental, and vision benefits, 401(k) matching, and unlimited Paid Time Off &lt;/li&gt;&lt;li&gt;Remote first culture with teammates all around the country.&lt;/li&gt;&lt;li&gt;This position has an initial term of six (6) months beginning on the employee's start date. We love to keep top performers if possible.&lt;/li&gt;&lt;/ul&gt;&lt;/ul&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Applications may be reviewed earlier on a rolling basis so it benefits candidates to apply as soon as possible. The application process includes a phone screen, an exercise, and a full interview with the hiring manager. Due to the nature of our work, the process is moving quickly, and we hope candidates will start as soon as possible. Applicants must be legally eligible to work in the United States. We are not able to provide sponsorship at this time.&lt;/p&gt;&lt;p&gt;Movement Labs is an equal opportunity employer with a commitment to economic and social justice. Women, people of color, LGBTQ people, people with disabilities, and members of other historically disenfranchised populations are strongly encouraged to apply. If you require accommodations as part of the hiring process, please contact careers@movementlabs.com.&lt;/p&gt;&lt;p&gt;Applications are reviewed by our hiring team—not automated systems. Our hiring process may include AI-assisted analysis of candidate materials, however, hiring decisions are made by human reviewers.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;To apply:&lt;/strong&gt; &lt;a href="https://weworkremotely.com/remote-jobs/movement-labs-senior-data-engineers"&gt;https://weworkremotely.com/remote-jobs/movement-labs-senior-data-engineers&lt;/a&gt;&lt;/p&gt;
+</description>
+      <pubDate>Sun, 15 Nov 2026 17:00:43 +0000</pubDate>
+      <expires_at>Tue, 15 Dec 2026 17:00:25 +0000</expires_at>
+      <guid>https://weworkremotely.com/remote-jobs/movement-labs-senior-data-engineers</guid>
+      <link>https://weworkremotely.com/remote-jobs/movement-labs-senior-data-engineers</link>
+    </item>
+<item>
+      <title>PATH: Consultant – Data analysis and Technical writing, HIV-Hepatitis-STI (HHS)</title>
+      <region>Asia Only</region>
+      <country></country>
+      <state></state>
+      <skills>Data Analysis and Technical Writing</skills>
+      <category>Full-Stack Programming</category>
+      <type>Contract</type>
+      <description>
+
+&lt;p&gt;
+  &lt;strong&gt;Headquarters:&lt;/strong&gt; New Delhi, Delhi, India
+    &lt;br /&gt;&lt;strong&gt;URL:&lt;/strong&gt; &lt;a href="https://path.org"&gt;https://path.org&lt;/a&gt;
+&lt;/p&gt;
+
+&lt;p&gt;PATH current employees - please log in and apply &lt;a href="http://www.myworkday.com/path/d/inst/13102!CK5mGhEKBggDEMenAhIHCgUI1A0QHQ~~*3CvN6qz2dnY~/cacheable-task/2998$46522.htmld#backheader=true"&gt;&lt;b&gt;Here&lt;/b&gt;&lt;/a&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;PATH is a global nonprofit advancing health innovations for the people who need them most. With 50 years of experience, a global team of experts, and trusted partnerships spanning 70+ countries, PATH turns breakthroughs into better health for millions every single year.&lt;/p&gt;&lt;br&gt;&lt;p&gt;&lt;b&gt;Consultant – Data analysis and Technical writing (21 days@ 20000 INR/day)&lt;/b&gt;&lt;/p&gt;&lt;br&gt;&lt;p&gt;&lt;b&gt;Topic: Data analysis and Development of Peer-Reviewed Publications&lt;/b&gt;&lt;/p&gt;&lt;br&gt;&lt;p&gt;&lt;b&gt;Place of Work: Remote&lt;/b&gt;&lt;/p&gt;&lt;br&gt;&lt;p&gt;&lt;b&gt;Division: HIV-Hepatitis-STI (HHS)&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;1. Background&lt;/p&gt;&lt;br&gt;&lt;p&gt;PATH is working on HIV, Hepatitis and STI for technical support to the national programs, operational research, and demonstration new/innovative diagnostic products. Based upon these program and research data, PATH develops technical and policy level documents for facilitating evidence-based decisions. Presently, PATH is looking for a consultant to data analysis, and technical writing, including peer-reviewed scientific publications. &amp;nbsp;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;2. Objective of the Assignment&lt;/p&gt;&lt;br&gt;&lt;p&gt;·&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; To assist and develop peer-reviewed articles and technical document on the on the topics related to HIV, Hepatitis and STIs.&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;3. Scope of Work&lt;/p&gt;&lt;br&gt;&lt;p&gt;The consultant will undertake the following activities:&lt;/p&gt;&lt;br&gt;&lt;p&gt;3.1. &lt;b&gt;Data analysis&lt;/b&gt;&lt;/p&gt;&lt;p&gt;·&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; Conduct data analysis on the pre-identified topics&lt;/p&gt;&lt;p&gt;·&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; Discuss and finalize the analytical findings&lt;/p&gt;&lt;p&gt;·&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; Develop appropriate tables and graphs in discussion with authors andco-authors&lt;/p&gt;&lt;br&gt;&lt;p&gt;3.2. &lt;b&gt;Draft, revise and finalize the article&lt;/b&gt;&lt;/p&gt;&lt;p&gt;·&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; Develop a draft article as per the template of an short-listed international journal with open access&lt;/p&gt;&lt;p&gt;·&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; Discuss and revise the article with inputs from authors/ Co-authors&lt;/p&gt;&lt;p&gt;·&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; Finalize the article with submit to the short-listed journal for publication.&lt;/p&gt;&lt;br&gt;&lt;br&gt;&lt;p&gt;&lt;b&gt;4. Expected Deliverables and Timeline&lt;/b&gt;&lt;/p&gt;&lt;br&gt;&lt;p&gt;The assignment will be undertaken over two months, from November to 31 December 2026.&lt;/p&gt;&lt;p&gt;&lt;span&gt;D&lt;b&gt;eliverable&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span&gt;&lt;b&gt;Expected timeline&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span&gt;&lt;b&gt;Data analysis and tabulation for two articles&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span&gt;Week 1&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;Discuss and finalize tables and graphs for two articles&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Weeks 2&lt;/p&gt;&lt;p&gt;&lt;span&gt;&lt;b&gt;Draft peer-reviewed article for two articles&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span&gt;Week 3-4&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;Draft 1 peer-reviewed submission for review for two articles&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Weeks 5&lt;/p&gt;&lt;p&gt;&lt;span&gt;&lt;b&gt;Revise and finalize&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span&gt;Weeks 6-7&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;Submission to journal&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Week 8&lt;/p&gt;&lt;br&gt;&lt;br&gt;&lt;p&gt;&lt;b&gt;5. Qualifications and Experience&lt;/b&gt;&lt;/p&gt;&lt;br&gt;&lt;p&gt;·&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; Postgraduate degree (Master’s or PhD) in Public Health, Infectious Diseases, Epidemiology, Health Systems or another relevant discipline.&lt;/p&gt;&lt;p&gt;·&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; Demonstrated experience in conducting literature reviews, evidence synthesis, or scientific research.&lt;/p&gt;&lt;p&gt;·&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; Familiarity with data analysis using SPSS/ STATA&lt;/p&gt;&lt;p&gt;·&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; Strong skills in scientific writing, critical appraisal of research literature, and synthesis of technical evidence.&lt;/p&gt;&lt;p&gt;·&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; Excellent written and verbal communication skills in English.&lt;/p&gt;&lt;p&gt;·&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; Experience engaging with technical experts and public health stakeholders will be an advantage.&lt;/p&gt;&lt;br&gt;&lt;br&gt;&lt;p&gt;&lt;b&gt;6. Duration&lt;/b&gt;&lt;/p&gt;&lt;br&gt;&lt;p&gt;The assignment will be for two months (November–December 2026). The consultant will work closely with the designated project team and submit deliverables according to the agreed timeline.&lt;/p&gt;&lt;br&gt;&lt;br&gt;&lt;p&gt;&lt;b&gt;7. Reporting&lt;/b&gt;&lt;/p&gt;&lt;br&gt;&lt;p&gt;The consultant will report to the designated project lead or technical focal point. The project team will provide feedback on the draft deliverables.&lt;/p&gt;&lt;br&gt;&lt;br&gt;&lt;p&gt;&lt;b&gt;8. Expected Outputs&lt;/b&gt;&lt;/p&gt;&lt;br&gt;&lt;p&gt;By the end of the assignment, the consultant will submit:&lt;/p&gt;&lt;p&gt;·&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; Two draft peer-reviewed articles/ Technical documents&lt;/p&gt;&lt;p&gt;·&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; Data analysis and the outputs associated with the articles.&lt;/p&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;To apply:&lt;/strong&gt; &lt;a href="https://weworkremotely.com/remote-jobs/path-consultant-data-analysis-and-technical-writing-hiv-hepatitis-sti-hhs"&gt;https://weworkremotely.com/remote-jobs/path-consultant-data-analysis-and-technical-writing-hiv-hepatitis-sti-hhs&lt;/a&gt;&lt;/p&gt;
+</description>
+      <pubDate>Sun, 15 Nov 2026 17:00:41 +0000</pubDate>
+      <expires_at>Wed, 25 Nov 2026 00:00:00 +0000</expires_at>
+      <guid>https://weworkremotely.com/remote-jobs/path-consultant-data-analysis-and-technical-writing-hiv-hepatitis-sti-hhs</guid>
+      <link>https://weworkremotely.com/remote-jobs/path-consultant-data-analysis-and-technical-writing-hiv-hepatitis-sti-hhs</link>
+    </item>
+<item>
+      <title>True Talent Solutions Partners: Software Engineer, AI Agents</title>
+      <region>USA Only</region>
+      <country></country>
+      <state></state>
+      <skills>Analytics, Machine Learning, Data Science, TypeScript, and Prototyping</skills>
+      <category>Full-Stack Programming</category>
+      <type>Full-Time</type>
+      <description>
+
+&lt;p&gt;
+  &lt;strong&gt;Headquarters:&lt;/strong&gt; United States
+    &lt;br /&gt;&lt;strong&gt;URL:&lt;/strong&gt; &lt;a href="https://truetalentsolutionspartners.com"&gt;https://truetalentsolutionspartners.com&lt;/a&gt;
+&lt;/p&gt;
+
+&lt;h3&gt;About the Role&lt;/h3&gt;&lt;p&gt;Join a product engineering team building AI-powered tools for data and marketing workflows. You will help explore new product opportunities, shape the underlying AI architecture, and bring prototypes into production.&lt;/p&gt;&lt;h3&gt;What You'll Do&lt;/h3&gt;&lt;ul&gt;&lt;li&gt;&lt;p&gt;Rapidly prototype ideas that apply AI to data and marketing workflows.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Work with a small team to develop and ship product concepts, including foundational work for new product areas.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Choose AI architectures and frameworks suited to each use case.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Evaluate where different language models and AI methods work well within the product.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Build production data agents that use company data to answer analytics and data science questions.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Understand user workflows and create seamless AI-assisted experiences.&lt;/p&gt;&lt;/li&gt;&lt;/ul&gt;&lt;h3&gt;What We're Looking For&lt;/h3&gt;&lt;ul&gt;&lt;li&gt;&lt;p&gt;Five to twelve years of software engineering experience building core products, ideally in an AI or machine learning context.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Strong backend architecture skills and product intuition, with experience taking ideas from prototype through production.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Experience building complex AI applications and applying machine learning in product or engineering settings, beyond simple retrieval-augmented generation.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Product engineering experience in a fast-moving startup or growth-stage environment, with evidence of increasing scope or responsibility.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;Experience contributing as an early engineering hire or founder is valuable.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;TypeScript experience is relevant; prior LLM experience is not required.&lt;/p&gt;&lt;/li&gt;&lt;/ul&gt;&lt;h3&gt;Compensation &amp;amp; Benefits&lt;/h3&gt;&lt;p&gt;Base salary: $200,000 to $320,000 annually. Visa sponsorship is available.&lt;/p&gt;&lt;h3&gt;Location&lt;/h3&gt;&lt;p&gt;Remote within the United States.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;To apply:&lt;/strong&gt; &lt;a href="https://weworkremotely.com/remote-jobs/true-talent-solutions-partners-software-engineer-ai-agents"&gt;https://weworkremotely.com/remote-jobs/true-talent-solutions-partners-software-engineer-ai-agents&lt;/a&gt;&lt;/p&gt;
+</description>
+      <pubDate>Sun, 15 Nov 2026 17:00:39 +0000</pubDate>
+      <expires_at>Tue, 15 Dec 2026 17:00:25 +0000</expires_at>
+      <guid>https://weworkremotely.com/remote-jobs/true-talent-solutions-partners-software-engineer-ai-agents</guid>
+      <link>https://weworkremotely.com/remote-jobs/true-talent-solutions-partners-software-engineer-ai-agents</link>
+    </item>
+<item>
+      <media:content url="https://wwr-pro.s3.amazonaws.com/logos/0171/6785/logo.gif" type="image/png"/>
+      <title>Come and See: QA Automation Engineer</title>
+      <region>USA Only</region>
+      <country></country>
+      <state></state>
+      <skills>Debugging and Git</skills>
+      <category>Full-Stack Programming</category>
+      <type>Full-Time</type>
+      <description>&lt;img src="https://we-work-remotely.imgix.net/logos/0171/6785/logo.gif?ixlib=rails-4.0.0&amp;w=50&amp;h=50&amp;dpr=2&amp;fit=fill&amp;auto=compress" /&gt;
+
+&lt;p&gt;
+  &lt;strong&gt;Headquarters:&lt;/strong&gt; Colorado Springs, Colorado, United States
+    &lt;br /&gt;&lt;strong&gt;URL:&lt;/strong&gt; &lt;a href="https://comeandsee.bamboohr.com/careers"&gt;https://comeandsee.bamboohr.com/careers&lt;/a&gt;
+&lt;/p&gt;
+
+&lt;p&gt;&lt;span&gt;JOIN THE COME AND SEE TEAM&lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;QA Automation Engineer&lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;Every person who presses play deserves a product that works, and quality is how we honor them.&lt;/span&gt; If you love building systems that catch problems early and see quality as a way to serve people well – we’d love to meet you.&lt;/p&gt;
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;ABOUT US&lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;Come and See is the faith-based nonprofit media ministry behind &lt;span&gt;The Chosen&lt;/span&gt;. Our mission is &lt;span&gt;inviting everyone to encounter Jesus through exceptional storytelling that brings the Bible to life.&lt;/span&gt; Our Team Members work together as collaborators in the greatest mission on earth.&lt;/p&gt;
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;ABOUT THE ROLE&lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;The QA Automation Engineer will build our automated testing strategy and coverage across web, mobile, connected TV, API, and backend platforms, integrate testing into our CI/CD pipelines, and support manual and exploratory testing where automation isn’t yet practical. This is a full-time, remote role open to candidates in the USA.&lt;/p&gt;
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;WHAT YOU’LL DO&lt;/span&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;span&gt;Shape the testing strategy.&lt;/span&gt; Help define automation standards, choose the right testing layers for each product, and prioritize by risk, business impact, and effort.&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;Champion testability.&lt;/span&gt; Advocate for quality throughout the development lifecycle and mentor teammates on where automation adds value and where manual validation still belongs.&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;Build automated test suites.&lt;/span&gt; Design, write, and maintain tests for critical user journeys, APIs, and integrations, with reusable frameworks, fixtures, and patterns for test data and mocking.&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;Keep tests reliable.&lt;/span&gt; Diagnose and fix flaky tests, and keep suites maintainable as products and architecture evolve.&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;Choose the right tools.&lt;/span&gt; Evaluate, prototype, and recommend testing frameworks and services, including AI approaches to test creation and maintenance, before wider adoption.&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;Wire testing into CI/CD.&lt;/span&gt; Work with Engineering on which tests run for pull requests, builds, deployments, and scheduled regression, and help set quality gates that don’t slow delivery.&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;Make quality visible.&lt;/span&gt; Improve visibility into test results, failures, and trends, and trace failures to application code, test code, infrastructure, or environments.&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;Test what automation can’t.&lt;/span&gt; Perform manual, exploratory, and regression testing across supported platforms and devices, and document and help diagnose defects.&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;Improve with the team.&lt;/span&gt; Work with Product Managers, Engineers, and Product Operations to validate acceptance criteria, learn from recurring defects, and keep improving our practices.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;WHAT YOU’LL BRING&lt;/span&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;5+ years in software quality assurance, test automation, or software engineering, using modern automated testing frameworks&lt;/li&gt;
+&lt;li&gt;Hands-on experience building and maintaining automated tests&lt;/li&gt;
+&lt;li&gt;Experience testing web applications, APIs, mobile applications, or other digital platforms&lt;/li&gt;
+&lt;li&gt;Strong grasp of testing principles, including regression, integration, end-to-end, exploratory, and risk-based testing&lt;/li&gt;
+&lt;li&gt;Ability to write code or scripts for test automation, with working knowledge of CI/CD and Git workflows&lt;/li&gt;
+&lt;li&gt;Experience diagnosing failures across applications, tests, environments, and integrations&lt;/li&gt;
+&lt;li&gt;A personal faith in Jesus and alignment with our mission, values, and Statement of Faith&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;BONUS POINTS:&lt;/span&gt; Bachelor’s degree in Computer Science, Software Engineering, or a related field, experience establishing or expanding an automated testing program, testing across web, iOS, Android, and connected TV, CI/CD integration, API and integration testing, cloud testing infrastructure or device farms, performance or accessibility testing, e&lt;span&gt;xperience leveraging AI-assisted development or testing tools to improve engineering productivity and test automation&lt;/span&gt;, streaming, media, or high-scale consumer product experience, nonprofit or ministry/faith-based organizational experience&lt;/p&gt;
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;BENEFITS:&lt;/span&gt; Medical, dental, vision, retirement match, HRA, disability and life insurance, generous and flexible time off, holidays, parental leave, and more.&lt;/p&gt;
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;OUR BELIEFS, CULTURE, AND COMMITMENT&lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;At Come and See, every staff member is a critical and valuable part of our mission and ministry. We consider ministry readiness and an individual’s capacity to represent our culture and Christian beliefs during the selection process for all staff positions. An essential function within every position held by a staff member at Come and See is to uphold and represent Jesus in how we live and behave.&lt;/p&gt;
+&lt;p&gt;While we unite around our mission, we know unity doesn’t mean uniformity. Our calling is too great, and our mission is too important not to be intentional about strengthening our team with people from all backgrounds. We believe that varied perspectives—across race, ethnicity, life experience, age, and gender—enrich our ability to share the story of Jesus with the world and help everyone, everywhere, experience the authentic Jesus.&lt;/p&gt;
+&lt;p&gt;Come and See is an equal opportunity employer and as a religious organization, lawfully exercises its right under Title VII and applicable state law to employ individuals who share its religious beliefs.&lt;/p&gt;
+&lt;p&gt;For accommodations, contact &lt;a href="mailto:peopleandculture@comeandseefoundation.org"&gt;peopleandculture@comeandseefoundation.org&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;Application Deadline:&lt;/span&gt; November 27, 2026&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;To apply:&lt;/strong&gt; &lt;a href="https://weworkremotely.com/remote-jobs/come-and-see-qa-automation-engineer"&gt;https://weworkremotely.com/remote-jobs/come-and-see-qa-automation-engineer&lt;/a&gt;&lt;/p&gt;
+</description>
+      <pubDate>Sun, 15 Nov 2026 17:00:38 +0000</pubDate>
+      <expires_at>Tue, 15 Dec 2026 17:00:25 +0000</expires_at>
+      <guid>https://weworkremotely.com/remote-jobs/come-and-see-qa-automation-engineer</guid>
+      <link>https://weworkremotely.com/remote-jobs/come-and-see-qa-automation-engineer</link>
+    </item>
+<item>
+      <title>Come and See: Product Engineer, Full Stack</title>
+      <region>USA Only</region>
+      <country></country>
+      <state></state>
+      <skills>Debugging, TypeScript, API Development, System Architecture, and Mobile Development</skills>
+      <category>Full-Stack Programming</category>
+      <type>Full-Time</type>
+      <description>
+
+&lt;p&gt;
+  &lt;strong&gt;Headquarters:&lt;/strong&gt; Colorado Springs, Colorado, United States
+    &lt;br /&gt;&lt;strong&gt;URL:&lt;/strong&gt; &lt;a href="https://comeandsee.bamboohr.com/careers"&gt;https://comeandsee.bamboohr.com/careers&lt;/a&gt;
+&lt;/p&gt;
+
+&lt;p&gt;&lt;span&gt;JOIN THE COME AND SEE TEAM&lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;Product Engineer, Full Stack&lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;Great stories only matter when they reach people, and you build the way they get there.&lt;/span&gt; If you love shipping software that holds up in production and see engineering as a way to serve people well – we’d love to meet you.&lt;/p&gt;
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;ABOUT US&lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;Come and See is the faith-based nonprofit media ministry behind &lt;span&gt;The Chosen&lt;/span&gt;. Our mission is &lt;span&gt;inviting everyone to encounter Jesus through exceptional storytelling that brings the Bible to life.&lt;/span&gt; Our Team Members work together as collaborators in the greatest mission on earth.&lt;/p&gt;
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;ABOUT THE ROLE&lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;The Product Engineer, Full Stack will build and ship features across our streaming apps on web, mobile, and connected TV, the platform services behind them, and the tools our partners rely on, working with Product and Design from user problem to production. This is a full-time, remote role open to candidates in the USA.&lt;/p&gt;
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;WHAT YOU’LL DO&lt;/span&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;span&gt;Start and end with the user.&lt;/span&gt; Partner with Product, Design, and stakeholders to understand user problems before building, and watch how features perform after launch so you can improve them.&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;Shape what gets built.&lt;/span&gt; Contribute to discovery, refinement, and technical planning, and break features into small deliveries that put value in front of users early.&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;Build across the stack.&lt;/span&gt; Design, build, and maintain features across web, mobile, connected TV, and backend services, building depth in new areas along the way.&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;Write code others can change.&lt;/span&gt; Deliver clear, well-tested, maintainable code to our standards, and give and receive code review feedback that raises the whole team’s work.&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;Own delivery and release.&lt;/span&gt; Run CI/CD pipelines, automated tests, deployment, and release readiness so changes ship with confidence.&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;Make problems visible early.&lt;/span&gt; Build observability into what ships, and join incident response and root-cause analysis through to the fix.&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;Pay down technical debt.&lt;/span&gt; Address debt that affects product quality, reliability, or delivery speed.&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;Own your AI-assisted work.&lt;/span&gt; Use AI tools across coding, testing, debugging, and documentation, validate the output as rigorously as hand-written code, and share with the team where AI helps and where it doesn’t.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;WHAT YOU’LL BRING&lt;/span&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;3–5 years building and shipping production software&lt;/li&gt;
+&lt;li&gt;Bachelor’s degree in Computer Science, Software Engineering, or a related field, or 4+ years of equivalent professional experience&lt;/li&gt;
+&lt;li&gt;Strong TypeScript experience across client applications, backend services, and the pipelines that ship them&lt;/li&gt;
+&lt;li&gt;Depth in frontend, mobile, or backend development, with willingness to work across the full range&lt;/li&gt;
+&lt;li&gt;Familiarity with cloud infrastructure, containerized deployments, and CI/CD tooling&lt;/li&gt;
+&lt;li&gt;Comfort across the full product and software life cycle, and ownership of work after it ships&lt;/li&gt;
+&lt;li&gt;A personal faith in Jesus and alignment with our mission, values, and Statement of Faith&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;BONUS POINTS:&lt;/span&gt; Mobile development (Kotlin or Swift), connected TV platform experience, nonprofit or ministry/faith-based organizational experience&lt;/p&gt;
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;BENEFITS:&lt;/span&gt; Medical, dental, vision, retirement match, HRA, disability and life insurance, generous and flexible time off, holidays, parental leave, and more.&lt;/p&gt;
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;OUR BELIEFS, CULTURE, AND COMMITMENT&lt;/span&gt;&lt;/p&gt;
+&lt;p&gt;At Come and See, every staff member is a critical and valuable part of our mission and ministry. We consider ministry readiness and an individual’s capacity to represent our culture and Christian beliefs during the selection process for all staff positions. An essential function within every position held by a staff member at Come and See is to uphold and represent Jesus in how we live and behave.&lt;/p&gt;
+&lt;p&gt;While we unite around our mission, we know unity doesn’t mean uniformity. Our calling is too great, and our mission is too important not to be intentional about strengthening our team with people from all backgrounds. We believe that varied perspectives—across race, ethnicity, life experience, age, and gender—enrich our ability to share the story of Jesus with the world and help everyone, everywhere, experience the authentic Jesus.&lt;/p&gt;
+&lt;p&gt;Come and See is an equal opportunity employer and as a religious organization, lawfully exercises its right under Title VII and applicable state law to employ individuals who share its religious beliefs.&lt;/p&gt;
+&lt;p&gt;For accommodations, contact peopleandculture@comeandseefoundation.org&lt;/p&gt;
+&lt;p&gt;&lt;span&gt;Application Deadline:&lt;/span&gt; November 27, 2026&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;To apply:&lt;/strong&gt; &lt;a href="https://weworkremotely.com/remote-jobs/come-and-see-product-engineer-full-stack"&gt;https://weworkremotely.com/remote-jobs/come-and-see-product-engineer-full-stack&lt;/a&gt;&lt;/p&gt;
+</description>
+      <pubDate>Sun, 15 Nov 2026 17:00:36 +0000</pubDate>
+      <expires_at>Tue, 15 Dec 2026 17:00:25 +0000</expires_at>
+      <guid>https://weworkremotely.com/remote-jobs/come-and-see-product-engineer-full-stack</guid>
+      <link>https://weworkremotely.com/remote-jobs/come-and-see-product-engineer-full-stack</link>
+    </item>
+  </channel>
+</rss>

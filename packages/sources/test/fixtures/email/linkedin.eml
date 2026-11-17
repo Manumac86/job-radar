@@ -1,0 +1,22 @@
+From: LinkedIn Job Alerts <jobalerts-noreply@linkedin.com>
+To: owner@example.invalid
+Subject: "AI Engineer" in European Union: 2 new jobs
+Date: Sun, 15 Nov 2026 07:12:00 +0000
+Message-ID: <alert-li-1@example.invalid>
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8
+
+<html><body><table>
+<tr><td>
+  <a href="https://www.linkedin.com/comm/jobs/view/4012345678/?trackingId=abc&amp;refId=x">Senior AI Engineer (LLM, RAG)</a>
+  <p>Northwind Analytics</p>
+  <p>European Union (Remote)</p>
+  <a href="https://www.linkedin.com/comm/jobs/view/4012345678/?trackingId=abc">View job</a>
+</td></tr>
+<tr><td>
+  <a href="https://www.linkedin.com/comm/jobs/view/4087654321/?trackingId=def">Head of Engineering</a>
+  <p>Contoso Labs · Seed</p>
+  <p>Madrid, Community of Madrid, Spain (Hybrid)</p>
+  <p>Actively recruiting</p>
+</td></tr>
+</table></body></html>

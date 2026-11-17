@@ -1,0 +1,15 @@
+pnpm-lock.yaml
+openspec/
+.agents/
+.claude/
+profile-seed/
+data/
+secrets/
+.turbo/
+**/.turbo/
+node_modules/
+HANDOFF.md
+CLAUDE.md
+**/drizzle/
+packages/sources/test/fixtures/import/
+apps/desktop/build/

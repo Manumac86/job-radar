@@ -1,0 +1,72 @@
+# Job Radar — example preferences (edit freely in Settings → Profile; validated at startup)
+owner:
+  name: Alex Rivera
+  base_location: Lisbon, Portugal
+  timezone: Europe/Lisbon
+  work_authorization: [EU]
+  languages: [Portuguese (native), English (full professional), Spanish (professional)]
+
+target_roles:
+  - Senior Full-Stack Engineer
+  - AI Engineer (LLM applications)
+  - Senior Frontend Engineer (React, Next.js)
+  - Tech Lead at an early-stage startup
+
+skills: [TypeScript, JavaScript, React, Next.js, Node.js, PostgreSQL, GraphQL, RAG, LLM integration, Tailwind CSS, Docker, AWS]
+
+service_lines:                     # used to label matches and tailor drafts
+  - id: llm-features
+    name: LLM features in production
+    evidence: Northwind retrieval-augmented assistant
+  - id: full-stack-product
+    name: Full-stack product engineering
+    evidence: Contoso merchant dashboard and design system
+
+leadership_target:
+  company_stage: [seed, series-a, series-b]
+  max_engineering_team: 30
+
+engagement:
+  types: [contract, full-time-remote]
+  weekly_capacity_hours: 40
+  min_project_hours_per_week: 20
+
+rates:
+  min_hourly: { USD: 60, EUR: 55, GBP: 50 }
+  min_daily_eur: 400
+  target_hourly: { USD: 80, EUR: 70, GBP: 65 }
+
+location:
+  remote_only: true
+  accepted_regions: [Worldwide, EMEA, Europe, EU, Portugal, US-remote-contractor]
+  max_overlap_required: "until 17:00 US Eastern"
+
+keywords:
+  include: [RAG, LLM, AI, Next.js, React, TypeScript, Node, full-stack, frontend, AI engineer, tech lead, CTO, engineering manager, head of engineering]
+  # "title:<word>" matches the title only (e.g. a senior role may mention mentoring junior engineers)
+  exclude: [PHP-only, WordPress, onsite, on-site only, "US citizens only", "security clearance", "title:junior", "title:intern", unpaid, equity-only]
+  # The title must contain one of these (skips sales, ops and other non-engineering roles)
+  title_include: [engineer, engineering, developer, CTO, architect, tech lead, technical lead, full-stack, fullstack, frontend, front-end, AI, ML, LLM, founding]
+
+sources:
+  ycombinator:
+    enabled: true
+    roles: [software-engineer, full-stack, frontend, ai-ml, engineering-manager]
+    title_keywords: [CTO, Chief Technology Officer, Head of Engineering, VP Engineering]
+    remote_only: true
+    poll_hours: 6
+
+scoring:
+  thresholds: { strong: 80, possible: 60 }
+  models: { scoring: haiku, drafting: sonnet }
+  daily_caps: { scoring: 300, drafts: 30, research: 10 }
+
+# Company research: Claude reads public pages about a company (every fact sourced).
+# Runs on "Research company", on shortlist and, when auto_strong is true, for strong offers.
+research:
+  auto_strong: true
+
+notifications:
+  quiet_hours: { start: "22:00", end: "08:00" }
+  digest_time: "08:30"
+  follow_up_days: [7] # Telegram reminder to follow up after N days without news (up to 5 values)

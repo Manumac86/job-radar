@@ -1,0 +1,30 @@
+{
+  "name": "@job-radar/sources",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@job-radar/core": "workspace:*",
+    "cheerio": "1.2.0",
+    "domhandler": "5.0.3",
+    "imapflow": "2.11.0",
+    "mailparser": "3.14.3",
+    "playwright": "1.65.1",
+    "rss-parser": "3.13.0",
+    "yaml": "2.9.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/mailparser": "3.9.0",
+    "@types/node": "22.20.5",
+    "vitest": "5.1.0"
+  }
+}

@@ -1,0 +1,41 @@
+# Companies polled on their public ATS job boards (Greenhouse, Lever, Ashby).
+# Every slug below was checked against the live board on 2026-11-15 (an example list: edit it to yours).
+# Add a company with its ATS and board slug; set enabled: false to pause one.
+companies:
+  # AI-first products and model companies
+  - { name: ElevenLabs, ats: ashby, slug: elevenlabs }
+  - { name: Synthesia, ats: ashby, slug: synthesia }
+  - { name: Cohere, ats: ashby, slug: cohere }
+  - { name: Perplexity, ats: ashby, slug: perplexity }
+  - { name: Writer, ats: ashby, slug: writer }
+  - { name: Dust, ats: ashby, slug: dust }
+  - { name: Lovable, ats: ashby, slug: lovable }
+  - { name: Poolside, ats: ashby, slug: poolside }
+  - { name: DeepL, ats: ashby, slug: deepl }
+  - { name: Photoroom, ats: ashby, slug: photoroom }
+  - { name: Deepgram, ats: ashby, slug: deepgram }
+  - { name: Helsing, ats: greenhouse, slug: helsing }
+  # AI infrastructure and agent tooling
+  - { name: LangChain, ats: ashby, slug: langchain }
+  - { name: Pinecone, ats: ashby, slug: pinecone }
+  - { name: Weaviate, ats: ashby, slug: weaviate }
+  - { name: Modal, ats: ashby, slug: modal }
+  - { name: LiveKit, ats: ashby, slug: livekit }
+  - { name: n8n, ats: ashby, slug: n8n }
+  - { name: Replit, ats: ashby, slug: replit }
+  # Remote-first developer platforms
+  - { name: Supabase, ats: ashby, slug: supabase }
+  - { name: PostHog, ats: ashby, slug: posthog }
+  - { name: Sanity, ats: ashby, slug: sanity }
+  - { name: Linear, ats: ashby, slug: linear }
+  - { name: Clerk, ats: ashby, slug: clerk }
+  - { name: Resend, ats: ashby, slug: resend }
+  - { name: Neon, ats: ashby, slug: neon }
+  - { name: Temporal, ats: ashby, slug: temporal }
+  - { name: Airbyte, ats: ashby, slug: airbyte }
+  - { name: Zapier, ats: ashby, slug: zapier }
+  - { name: GitLab, ats: greenhouse, slug: gitlab }
+  - { name: Grafana Labs, ats: greenhouse, slug: grafanalabs }
+  - { name: Tailscale, ats: greenhouse, slug: tailscale }
+  - { name: Typeform, ats: greenhouse, slug: typeform }
+  - { name: Pigment, ats: lever, slug: pigment }

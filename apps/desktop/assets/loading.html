@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'"
+    />
+    <title>Job Radar</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+      body {
+        margin: 0;
+        height: 100vh;
+        display: grid;
+        place-items: center;
+        background: Canvas;
+        color: CanvasText;
+      }
+      main {
+        max-width: 640px;
+        padding: 24px;
+        text-align: center;
+      }
+      h1 {
+        font-size: 20px;
+        font-weight: 600;
+        margin: 0 0 8px;
+      }
+      p {
+        opacity: 0.75;
+        margin: 0 0 16px;
+      }
+      pre {
+        text-align: left;
+        font-size: 11px;
+        max-height: 240px;
+        overflow: auto;
+        padding: 12px;
+        border-radius: 8px;
+        background: rgba(127, 127, 127, 0.12);
+        white-space: pre-wrap;
+      }
+      button {
+        font: inherit;
+        padding: 6px 14px;
+        border-radius: 6px;
+      }
+      .spinner {
+        width: 28px;
+        height: 28px;
+        margin: 0 auto 16px;
+        border: 3px solid rgba(127, 127, 127, 0.3);
+        border-top-color: CanvasText;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      [hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="spinner" id="spinner"></div>
+      <h1 id="title">Starting Job Radar…</h1>
+      <p id="message">Starting the worker and the web server on this Mac.</p>
+      <pre id="log" hidden></pre>
+      <button id="restart" hidden>Restart</button>
+    </main>
+    <script>
+      const q = new URLSearchParams(location.search);
+      const error = q.get("error");
+      if (error) {
+        document.getElementById("spinner").hidden = true;
+        document.getElementById("title").textContent =
+          q.get("title") || "Job Radar could not start";
+        document.getElementById("message").textContent = error;
+        const log = q.get("log");
+        if (log) {
+          const pre = document.getElementById("log");
+          pre.textContent = log;
+          pre.hidden = false;
+        }
+        if (q.get("restart") === "1" && window.jobRadarDesktop) {
+          const b = document.getElementById("restart");
+          b.hidden = false;
+          b.onclick = () => window.jobRadarDesktop.restart();
+        }
+      }
+    </script>
+  </body>
+</html>
