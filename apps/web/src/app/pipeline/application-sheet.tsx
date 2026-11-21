@@ -38,6 +38,7 @@ import {
 import type { CardData, StageData } from "./board";
 import { InterviewPrepSection } from "./interview-prep";
 import { EmailEntry } from "@/components/email-entry";
+import { PortalEntry } from "@/components/portal-entry";
 
 const INTERVIEW_TYPES = [
   ["screening", "Screening"],
@@ -488,10 +489,13 @@ export function ApplicationSheet({
             <div className="space-y-6 px-4 pb-6">
               <StageForm key={`stage-${card.id}-${card.stage}`} card={card} stages={stages} />
               <Separator />
-              {card.emails.length ? (
+              {card.emails.length || card.portalUpdates.length ? (
                 <>
-                  <Section title="Emails">
-                    <div className="space-y-2">
+                  <Section title="Updates">
+                    <div className="space-y-2" data-testid="application-updates">
+                      {card.portalUpdates.map((u) => (
+                        <PortalEntry key={`p${u.id}-${u.state}`} update={u} compact />
+                      ))}
                       {[...card.emails].reverse().map((e) => (
                         <EmailEntry key={`${e.id}-${e.status}`} email={e} compact />
                       ))}

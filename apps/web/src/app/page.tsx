@@ -64,8 +64,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
             <CardDescription>
               Enable a source to start collecting offers. Public sources (ATS job boards, Y
               Combinator, Hacker News, RemoteOK, We Work Remotely) need no account. Job-alert emails
-              need your mailbox address and an app password in{" "}
-              <code>secrets/imap_app_password</code>.
+              are read from the email accounts where you turn job alerts on (Settings → Email).
             </CardDescription>
           </CardHeader>
           <CardContent>

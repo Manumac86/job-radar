@@ -6,7 +6,7 @@ Reads the owner's mailboxes for replies to applications, matches each reply to a
 ## Requirements
 
 ### Requirement: Email accounts
-The owner SHALL be able to add, edit, disable, test and remove any number of IMAP email accounts in Settings, each with a label, address, host, port and folders to read (default INBOX), with presets for Gmail and iCloud. The app password SHALL be entered in a write-only field, stored only under `secrets/`, never displayed again and never logged.
+The owner SHALL be able to add, edit, disable, test and remove any number of IMAP email accounts in Settings, each with a label, address, host, port and folders to read for replies (default INBOX), with presets for Gmail and iCloud. Each account SHALL also have job-alert settings: a "Job alerts" switch, alert folders or labels, and "Also look in INBOX" (see job-ingestion "Job-alert emails from email accounts"). The app password SHALL be entered in a write-only field, stored only under `secrets/`, never displayed again and never logged.
 
 #### Scenario: Add an iCloud account
 - **WHEN** the owner picks the iCloud preset, enters the address and an app-specific password, and presses "Test connection"
@@ -19,6 +19,10 @@ The owner SHALL be able to add, edit, disable, test and remove any number of IMA
 #### Scenario: Wrong password
 - **WHEN** the server rejects the login
 - **THEN** the account shows an error naming the account and how to create an app password for that provider, and the other accounts keep working
+
+#### Scenario: Turn on job alerts for an account
+- **WHEN** the owner turns on "Job alerts" for an account, enters the label `job-alerts`, and presses "Test connection"
+- **THEN** the test also reports how many messages the `job-alerts` folder holds, or says the folder does not exist
 
 ### Requirement: Read-only incremental reading
 The system SHALL check every enabled account on a configurable interval (default 15 minutes) and on demand. It SHALL open folders read-only, fetch only messages newer than the last one seen in each folder, and never mark, move, delete, flag or answer mail. The first check of an account SHALL look back to the oldest open application, at most 60 days.

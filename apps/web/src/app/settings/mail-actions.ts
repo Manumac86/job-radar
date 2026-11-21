@@ -17,6 +17,9 @@ const accountInput = z.object({
   port: z.coerce.number().int().min(1).max(65535),
   folders: z.array(z.string().trim().min(1)).min(1).max(10),
   enabled: z.boolean(),
+  jobAlerts: z.boolean(),
+  alertFolders: z.array(z.string().trim().min(1)).max(10),
+  alertsInInbox: z.boolean(),
   /** Empty keeps the saved password. */
   password: z.string().max(500),
 });
@@ -51,14 +54,22 @@ export async function deleteMailAccount(id: number): Promise<ActionResult> {
 }
 
 export async function testMailAccount(id: number): Promise<ActionResult> {
-  const r = await workerFetch<{ ok: boolean; messages?: number; error?: string }>(
-    `/mail/accounts/${id}/test`,
-    { method: "POST" },
-  );
+  const r = await workerFetch<{
+    ok: boolean;
+    messages?: number;
+    alertFolders?: { folder: string; messages: number | null }[];
+    error?: string;
+  }>(`/mail/accounts/${id}/test`, { method: "POST" });
   refresh();
   if (!r.ok) return { ok: false, error: r.error };
   if (!r.data.ok) return { ok: false, error: r.data.error ?? "Connection failed" };
-  return { ok: true, message: `Connected (read-only): ${r.data.messages ?? 0} messages in INBOX` };
+  const alerts = (r.data.alertFolders ?? []).map((f) =>
+    f.messages === null ? `"${f.folder}" does not exist` : `${f.messages} in ${f.folder}`,
+  );
+  return {
+    ok: true,
+    message: `Connected (read-only): ${r.data.messages ?? 0} messages in INBOX${alerts.length ? `; job alerts: ${alerts.join(", ")}` : ""}`,
+  };
 }
 
 export async function checkMailNow(accountId?: number): Promise<ActionResult> {

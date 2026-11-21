@@ -1,5 +1,6 @@
-// Job-alert emails (design D5): one read-only mailbox label that receives alerts from
-// LinkedIn, Upwork, Malt and Wellfound. Recommended path for sites that restrict automation.
+// Job-alert emails (design D5, job-alert-mailboxes): alerts from LinkedIn, Upwork, Malt,
+// Wellfound and Greenhouse, read from the owner's email accounts. Recommended path for sites
+// that restrict automation.
 import {
   UNTRUSTED_DATA_RULES,
   callStructured,
@@ -8,25 +9,17 @@ import {
   type NormalizedOfferInput,
 } from "@job-radar/core";
 import * as cheerio from "cheerio";
-import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import { z } from "zod";
-import type { SourceAdapter, SourceContext } from "../types";
+import type { AlertEmail, SourceAdapter, SourceContext } from "../types";
 import { htmlToText, inferEngagement, inferRemotePolicy, regionsFrom } from "../util";
 
-export interface AlertEmail {
-  messageId: string;
-  from: string;
-  subject: string;
-  date: Date | null;
-  html: string | null;
-  text: string | null;
-}
+export type { AlertEmail };
 
 interface SiteRule {
   site: string;
   sender: RegExp;
-  /** Job URL pattern; group 1 is the job id. */
+  /** Job URL pattern; group 1 is the job id, or the board when group 2 (the job id) exists. */
   jobUrl: RegExp;
   engagementHint?: string;
 }
@@ -56,7 +49,21 @@ export const SITE_RULES: SiteRule[] = [
     sender: /wellfound\.com|angel\.co/i,
     jobUrl: /https?:\/\/(?:www\.)?wellfound\.com\/(?:company\/[^/\s"']+\/)?jobs\/(\d+)[^\s"'<>?]*/i,
   },
+  {
+    // Greenhouse and MyGreenhouse job alerts link to the public job board page
+    // (job-boards[.eu].greenhouse.io/<board>/jobs/<id>, or the older boards.greenhouse.io).
+    site: "greenhouse",
+    sender: /greenhouse\.io|greenhouse-mail\.io|greenhouse\.com/i,
+    jobUrl:
+      /https?:\/\/(?:job-boards|boards)(?:\.eu)?\.greenhouse\.io\/(?!embed\b)([\w-]+)\/jobs\/(\d+)/i,
+  },
 ];
+
+/** The job id from a rule match: "<board>:<id>" when the rule captures a board too. */
+function jobIdOf(m: RegExpExecArray): string | null {
+  if (!m[1]) return null;
+  return m[2] ? `${m[1]}:${m[2]}` : m[1];
+}
 
 const NOISE =
   /^(view job|view|apply|apply now|see job|see more|save|easy apply|new|promoted|actively recruiting|be an early applicant)$/i;
@@ -77,8 +84,8 @@ export function parseWithRule(
     $("a[href]").each((_, a) => {
       const href = $(a).attr("href") ?? "";
       const m = rule.jobUrl.exec(href);
-      if (!m?.[1]) return;
-      const id = m[1];
+      const id = m ? jobIdOf(m) : null;
+      if (!m || !id) return;
       const text = $(a).text().replace(/\s+/g, " ").trim();
       const block = $(a).closest("td, li, div, tr");
       const lines = block
@@ -101,7 +108,8 @@ export function parseWithRule(
     const lines = email.text.split(/\r?\n/).map((l) => l.trim());
     lines.forEach((line, i) => {
       const m = rule.jobUrl.exec(line);
-      if (!m?.[1] || jobs.has(m[1])) return;
+      const id = m ? jobIdOf(m) : null;
+      if (!m || !id || jobs.has(id)) return;
       const before: string[] = [];
       for (let j = i - 1; j >= 0 && before.length < 4; j--) {
         const l = (lines[j] ?? "").replace(/^(view job|apply)\s*:?\s*$/i, "");
@@ -112,7 +120,7 @@ export function parseWithRule(
         if (rule.jobUrl.test(l)) break;
         before.unshift(l);
       }
-      jobs.set(m[1], { url: cleanUrl(m[0]), title: before[0] ?? "", lines: before });
+      jobs.set(id, { url: cleanUrl(m[0]), title: before[0] ?? "", lines: before });
     });
   }
   const out: NormalizedOfferInput[] = [];
@@ -122,7 +130,12 @@ export function parseWithRule(
     // Typical card: title, company, location (in that order), then extras like budget.
     const companyLine =
       rest.find((l) => !/remote|hybrid|on-?site|\$|€|£|budget|posted|hour|fixed/i.test(l)) ?? "";
-    const company = companyLine.split(/\s+[·•|-]\s+/)[0]?.trim() || "Unknown company";
+    // A board-qualified id ("<board>:<id>") names the company when the card does not.
+    const board = id.includes(":") ? (id.split(":")[0] ?? "") : "";
+    const company =
+      companyLine.split(/\s+[·•|-]\s+/)[0]?.trim() ||
+      (board ? board.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "") ||
+      "Unknown company";
     const location =
       rest.find(
         (l) =>
@@ -241,67 +254,71 @@ export async function emailFromSource(source: Buffer | string): Promise<AlertEma
   };
 }
 
-/** imapflow throws "Command failed"; turn its server response into an actionable message. */
-export function describeImapError(err: unknown, label: string): Error {
-  const e = (err ?? {}) as {
-    message?: string;
-    responseText?: string;
-    serverResponseCode?: string;
-    authenticationFailed?: boolean;
-  };
-  if (e.authenticationFailed || e.serverResponseCode === "AUTHENTICATIONFAILED") {
-    return new Error(
-      "Gmail rejected the login: check the mailbox address in Settings and the app password in secrets/imap_app_password",
-    );
-  }
-  if (e.serverResponseCode === "NONEXISTENT") {
-    return new Error(
-      `Gmail has no label "${label}": create it in Gmail (and a filter that applies it) or change the label in Settings`,
-    );
-  }
-  const detail = [e.serverResponseCode, e.responseText].filter(Boolean).join(" ");
-  return new Error(detail ? `IMAP error: ${detail}` : (e.message ?? String(err)));
+/** True when the sender is a known job-alert sender (LinkedIn, Upwork, Malt, Wellfound, Greenhouse). */
+export function isKnownAlertSender(fromAddress: string): boolean {
+  return SITE_RULES.some((r) => r.sender.test(fromAddress));
+}
+
+/** Known senders only, no model fallback: used for INBOX (job-alert-mailboxes D3). */
+export function parseKnownSender(email: AlertEmail, sourceId: string): NormalizedOfferInput[] {
+  const rule = SITE_RULES.find((r) => r.sender.test(email.from));
+  return rule ? parseWithRule(email, rule, sourceId) : [];
 }
 
 export const emailAlertsAdapter: SourceAdapter = {
   type: "email_alerts",
-  label: "Job-alert emails (IMAP label)",
+  label: "Job-alert emails",
   defaultIntervalMinutes: 60,
   async fetchOffers(ctx) {
-    const s = ctx.settings;
-    const user = typeof s["user"] === "string" ? s["user"] : null;
-    const password = ctx.readSecret?.("imap_app_password") ?? null;
-    if (!user || !password) {
+    const mail = ctx.mail;
+    if (!mail)
+      throw new Error("Job-alert emails are read from your email accounts (Settings → Email)");
+    const accounts = mail.accounts();
+    if (!accounts.length) {
       throw new Error(
-        "Set the mailbox address in Settings and save the app password to secrets/imap_app_password",
+        "No email account has job alerts on: turn them on for an account in Settings → Email",
       );
     }
-    const label = typeof s["label"] === "string" ? s["label"] : "job-alerts";
+    const s = ctx.settings;
     const lookbackDays = typeof s["lookback_days"] === "number" ? s["lookback_days"] : 3;
-    const client = new ImapFlow({
-      host: typeof s["host"] === "string" ? s["host"] : "imap.gmail.com",
-      port: typeof s["port"] === "number" ? s["port"] : 993,
-      secure: true,
-      auth: { user, pass: password },
-      logger: false,
-    });
+    const since = new Date(ctx.now().getTime() - lookbackDays * 86_400_000);
     const out: NormalizedOfferInput[] = [];
-    try {
-      await client.connect();
-      // EXAMINE (read-only): messages are never marked as read, moved or deleted.
-      await client.mailboxOpen(label, { readOnly: true });
-      const since = new Date(ctx.now().getTime() - lookbackDays * 86_400_000);
-      const uids = (await client.search({ since }, { uid: true })) || [];
-      ctx.log(`${label}: ${uids.length} messages since ${since.toISOString().slice(0, 10)}`);
-      for await (const msg of client.fetch(uids, { source: true }, { uid: true })) {
-        if (!msg.source) continue;
-        out.push(...(await parseAlertEmail(await emailFromSource(msg.source), ctx)));
+    const errors: string[] = [];
+    let accountsRead = 0;
+    for (const account of accounts) {
+      const knownOnly = new Map(account.folders.map((f) => [f.name, f.knownSendersOnly]));
+      try {
+        const reads = await mail.read(
+          account,
+          account.folders.map((f) => ({
+            folder: f.name,
+            // INBOX: only known alert senders are downloaded; personal mail is never read.
+            accept: f.knownSendersOnly ? (e) => isKnownAlertSender(e.fromAddress) : () => true,
+          })),
+          since,
+        );
+        accountsRead++;
+        for (const r of reads) {
+          if (r.error) {
+            errors.push(`${account.label} / ${r.folder}: ${r.error}`);
+            continue;
+          }
+          ctx.log(`${account.label} / ${r.folder}: ${r.emails.length} new messages`);
+          for (const email of r.emails) {
+            out.push(
+              ...(knownOnly.get(r.folder)
+                ? parseKnownSender(email, ctx.sourceId)
+                : await parseAlertEmail(email, ctx)),
+            );
+          }
+        }
+      } catch (err) {
+        errors.push(`${account.label}: ${err instanceof Error ? err.message : String(err)}`);
       }
-    } catch (err) {
-      throw describeImapError(err, label);
-    } finally {
-      await client.logout().catch(() => {});
     }
+    // Every account failed: the run fails. Otherwise the run succeeds and shows what failed.
+    if (!accountsRead) throw new Error(errors.join("; "));
+    if (errors.length) ctx.reportError?.(errors.join("; "));
     return out;
   },
 };

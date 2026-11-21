@@ -67,6 +67,17 @@ export interface ReplyEnvelope {
 export interface FetchedReply extends ReplyEnvelope {
   /** Plain text of the body (HTML converted). */
   text: string;
+  /** The HTML body when the message has one (job alerts parse links from it). */
+  html: string | null;
+  /** The From header as sent ("Name <address>"). */
+  from: string;
+  /** The Date header, when present. */
+  sentAt: Date | null;
+}
+
+export interface ReadFolderOptions {
+  /** At most this many new messages per call; the cursor stops at the last one read. */
+  limit?: number;
 }
 
 export interface FolderCursor {
@@ -112,6 +123,7 @@ export async function readFolder(
   cursor: FolderCursor | undefined,
   since: Date,
   isMatch: (e: ReplyEnvelope) => boolean,
+  options: ReadFolderOptions = {},
 ): Promise<FolderResult> {
   const box = await client.mailboxOpen(folder, { readOnly: true });
   const uidValidity = String(box.uidValidity);
@@ -120,7 +132,10 @@ export async function readFolder(
     ? await client.search({ uid: `${cursor.lastUid + 1}:*` }, { uid: true })
     : await client.search({ since }, { uid: true });
   // "n:*" always returns the newest message, even when it is older than n.
-  const uids = (found || []).filter((u) => !continuing || u > cursor.lastUid).sort((a, b) => a - b);
+  const uids = (found || [])
+    .filter((u) => !continuing || u > cursor.lastUid)
+    .sort((a, b) => a - b)
+    .slice(0, options.limit ?? Infinity);
   const envelopes: ReplyEnvelope[] = [];
   if (uids.length) {
     for await (const msg of client.fetch(
@@ -142,6 +157,9 @@ export async function readFolder(
       ...e,
       messageId: mail.messageId?.trim() || e.messageId,
       text: mail.text?.trim() || (html ? htmlToText(html) : ""),
+      html: html || null,
+      from: mail.from?.text ?? (e.fromName ? `${e.fromName} <${e.fromAddress}>` : e.fromAddress),
+      sentAt: mail.date ?? null,
     });
   }
   const lastUid = Math.max(continuing ? cursor.lastUid : 0, ...uids, 0);
@@ -150,10 +168,35 @@ export async function readFolder(
 
 /** Opens INBOX read-only and returns how many messages it holds. */
 export async function testImapConnection(client: ReadOnlyImap): Promise<number> {
+  return (await testImapFolders(client, [])).inbox;
+}
+
+export interface FolderCount {
+  folder: string;
+  /** Null when the folder does not exist. */
+  messages: number | null;
+}
+
+/** Opens INBOX and each extra folder read-only and counts their messages. */
+export async function testImapFolders(
+  client: ReadOnlyImap,
+  folders: string[],
+): Promise<{ inbox: number; folders: FolderCount[] }> {
   await client.connect();
   try {
-    const box = await client.mailboxOpen("INBOX", { readOnly: true });
-    return box.exists;
+    const inbox = (await client.mailboxOpen("INBOX", { readOnly: true })).exists;
+    const counts: FolderCount[] = [];
+    for (const folder of folders) {
+      try {
+        counts.push({
+          folder,
+          messages: (await client.mailboxOpen(folder, { readOnly: true })).exists,
+        });
+      } catch {
+        counts.push({ folder, messages: null });
+      }
+    }
+    return { inbox, folders: counts };
   } finally {
     await client.logout().catch(() => {});
   }

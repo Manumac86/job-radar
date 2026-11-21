@@ -4,6 +4,8 @@ import {
   committedWeeklyHours,
   emailsForApplication,
   pendingEmailSuggestions,
+  pendingPortalSuggestions,
+  portalUpdatesForApplication,
   latestInterviewPreps,
   listStages,
   NO_RESPONSE_DAYS,
@@ -14,8 +16,10 @@ import { PageHeader } from "@/components/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmailEntry } from "@/components/email-entry";
+import { PortalEntry } from "@/components/portal-entry";
 import { db } from "@/lib/db";
 import { toEmailView, type EmailView } from "@/lib/emails";
+import { toPortalView, type PortalUpdateView } from "@/lib/portal-updates";
 import { cvOptions, readPreferences } from "@/lib/profile";
 import { Board, type CardData } from "./board";
 
@@ -28,6 +32,7 @@ function toCards(
   preps: ReturnType<typeof latestInterviewPreps>,
   labels: Map<string, string>,
   emailsOf: (applicationId: number) => EmailView[],
+  portalOf: (applicationId: number) => PortalUpdateView[] = () => [],
 ): CardData[] {
   const now = at.getTime();
   return rows.map(({ application, offer, nextStep, interviews, engagement }) => ({
@@ -74,6 +79,7 @@ function toCards(
       ? { id: application.cvVariant, name: application.cvVariantName ?? application.cvVariant }
       : null,
     emails: emailsOf(application.id),
+    portalUpdates: portalOf(application.id),
     canPrepare: isInterviewStage(application.stage, labels.get(application.stage) ?? ""),
     prep: (() => {
       const p = preps.get(application.id);
@@ -96,10 +102,22 @@ export default function PipelinePage() {
   const labels = new Map(stages.map((s) => [s.key, s.label]));
   const suggestions = pendingEmailSuggestions(d);
   const candidatesOf = new Map(suggestions.map((s) => [s.email.id, s.candidates]));
-  const cards = toCards(rows, new Date(), latestInterviewPreps(d), labels, (id) =>
-    emailsForApplication(d, id)
-      .filter((e) => e.status !== "queued")
-      .map((e) => toEmailView(e, candidatesOf.get(e.id))),
+  const stageLabel = (key: string) => labels.get(key) ?? key;
+  const portalSuggestions = pendingPortalSuggestions(d);
+  const portalCandidatesOf = new Map(portalSuggestions.map((s) => [s.update.id, s.candidates]));
+  const cards = toCards(
+    rows,
+    new Date(),
+    latestInterviewPreps(d),
+    labels,
+    (id) =>
+      emailsForApplication(d, id)
+        .filter((e) => e.status !== "queued")
+        .map((e) => toEmailView(e, candidatesOf.get(e.id))),
+    (id) =>
+      portalUpdatesForApplication(d, id).map((u) =>
+        toPortalView(u, portalCandidatesOf.get(u.id), stageLabel),
+      ),
   );
   const { prefs } = readPreferences();
   const capacity = prefs
@@ -121,18 +139,24 @@ export default function PipelinePage() {
           </AlertDescription>
         </Alert>
       ) : null}
-      {suggestions.length ? (
-        <Card className="mb-4" data-testid="email-suggestions">
+      {suggestions.length || portalSuggestions.length ? (
+        <Card className="mb-4" data-testid="updates-to-review">
           <CardHeader>
-            <CardTitle>From email</CardTitle>
+            <CardTitle>Updates to review</CardTitle>
             <CardDescription>
-              Replies Job Radar was not sure about. Apply one to update its application, or dismiss
-              it.
+              Replies and portal statuses Job Radar was not sure about. Apply one to update its
+              application, or dismiss it.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-2 md:grid-cols-2">
             {suggestions.map((s) => (
-              <EmailEntry key={s.email.id} email={toEmailView(s.email, s.candidates)} />
+              <EmailEntry key={`e${s.email.id}`} email={toEmailView(s.email, s.candidates)} />
+            ))}
+            {portalSuggestions.map((s) => (
+              <PortalEntry
+                key={`p${s.update.id}`}
+                update={toPortalView(s.update, s.candidates, stageLabel)}
+              />
             ))}
           </CardContent>
         </Card>

@@ -37,6 +37,12 @@ export const RISK_NOTICES: Record<
     alternative:
       "Offers → Import → SimpleApply CSV: export the CSV in SimpleApply and import it. It carries no account risk.",
   },
+  mygreenhouse: {
+    text: "Job Radar reads your MyGreenhouse jobs, recommendations and application statuses. It never applies, quick-applies, saves or withdraws. You sign in with the code Greenhouse emails you; Job Radar never sees it. Automated reading may go against Greenhouse's terms.",
+    preferEmail: false,
+    alternative:
+      "Turn on job alerts in MyGreenhouse and read them through Settings → Email: that path carries no account risk.",
+  },
   mercor: {
     text: "Mercor may limit accounts that browse automatically. Job Radar only reads pages, slowly, with a page cap.",
     preferEmail: false,

@@ -228,6 +228,8 @@ export function moveStage(
     /** Who made the change (application-emails D5). */
     source?: TransitionSource;
     emailId?: number | null;
+    /** The portal application row that made this change (mygreenhouse-source D4). */
+    portalApplicationId?: number | null;
   } = {},
 ): Application {
   const stages = listStages(db);
@@ -262,6 +264,7 @@ export function moveStage(
         note: options.note ?? null,
         source: options.source ?? "manual",
         emailId: options.emailId ?? null,
+        portalApplicationId: options.portalApplicationId ?? null,
         at,
       })
       .run();
@@ -276,7 +279,9 @@ export function moveStage(
         to: toStage,
         ...(options.source === "email"
           ? { source: "email", emailId: options.emailId ?? null }
-          : {}),
+          : options.source === "greenhouse"
+            ? { source: "greenhouse", portalApplicationId: options.portalApplicationId ?? null }
+            : {}),
       },
       at,
     });

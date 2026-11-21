@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { ScoreBadge } from "@/components/score-badge";
 import { Badge } from "@/components/ui/badge";
 import type { EmailView } from "@/lib/emails";
+import type { PortalUpdateView } from "@/lib/portal-updates";
 import { cn } from "@/lib/utils";
 import { moveApplication } from "./actions";
 import { ApplicationSheet } from "./application-sheet";
@@ -64,6 +65,8 @@ export interface CardData {
   cv: { id: string; name: string } | null;
   /** Emails matched to this application (application-emails), oldest first. */
   emails: EmailView[];
+  /** Portal status updates for this application (mygreenhouse-source), newest first. */
+  portalUpdates: PortalUpdateView[];
 }
 
 export interface PrepData {
@@ -147,7 +150,10 @@ function Card({ card, onOpen }: { card: CardData; onOpen: () => void }) {
           <Badge variant="secondary">{card.engagement.weeklyHours} h/wk</Badge>
         ) : null}
         {card.staleNoResponse ? <Badge variant="outline">14 days, no response?</Badge> : null}
-        {card.emails.some((e) => e.status === "suggested") ? <Badge>Email to review</Badge> : null}
+        {card.emails.some((e) => e.status === "suggested") ||
+        card.portalUpdates.some((u) => u.state === "suggested") ? (
+          <Badge>Update to review</Badge>
+        ) : null}
       </div>
     </div>
   );

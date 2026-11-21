@@ -19,6 +19,9 @@ const account = z
     port: z.number().int().min(1).max(65535).optional(),
     folders: z.array(folder).max(10).optional(),
     enabled: z.boolean().optional(),
+    jobAlerts: z.boolean().optional(),
+    alertFolders: z.array(folder).max(10).optional(),
+    alertsInInbox: z.boolean().optional(),
     password: z.string().max(500).optional().nullable(),
   })
   .strict();

@@ -5,7 +5,7 @@ import type { Locator, Page, Response } from "playwright";
 
 /** Labels that must never be clicked, in any language we expect on these sites. */
 export const FORBIDDEN_LABELS =
-  /\b(apply|applying|applied|unlock|upgrade|not interested|hide|auto apply|submit|send|connect|follow|message|contact|bid|propose|proposal|hire|invite|accept|save job|easy apply|postular|enviar|solicitar|aplicar|conectar|seguir|mensaje|contactar|postuler|envoyer|candidater|bewerben|senden)\b/i;
+  /\b(apply|applying|applied|quick apply|dream job|withdraw|withdrawing|unlock|upgrade|not interested|hide|auto apply|submit|send|connect|follow|message|contact|bid|propose|proposal|hire|invite|accept|save job|easy apply|postular|enviar|solicitar|aplicar|conectar|seguir|mensaje|contactar|postuler|envoyer|candidater|bewerben|senden)\b/i;
 
 /** The only things safeClick may click. */
 export const ALLOWED_LABELS =

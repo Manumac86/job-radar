@@ -24,8 +24,11 @@ function fakeMailbox(account: ImapAccount): ReadOnlyImap {
         throw Object.assign(new Error("Command failed"), { authenticationFailed: true });
       }
     },
-    async mailboxOpen() {
-      return { uidValidity: 1, exists: 3 };
+    // INBOX holds 3 messages and "job-alerts" 5; any other folder does not exist.
+    async mailboxOpen(path) {
+      if (path === "INBOX") return { uidValidity: 1, exists: 3 };
+      if (path === "job-alerts") return { uidValidity: 1, exists: 5 };
+      throw Object.assign(new Error("Command failed"), { serverResponseCode: "NONEXISTENT" });
     },
     async search() {
       return [];

@@ -19,39 +19,31 @@ import {
   type ValidatedReply,
 } from "@job-radar/core";
 import {
-  addInterview,
   addTimelineEvent,
-  completeNextStep,
+  alertAccounts,
+  alertReadFolders,
   createMailAccount,
-  deleteInterview,
   deleteMailAccount,
   getApplication,
   getApplicationEmail,
-  getInterview,
   getMailAccount,
   getMailCursor,
   getOffer,
+  getSource,
   hasApplicationEmail,
   insertApplicationEmail,
   listMailAccounts,
   listStages,
-  markApplicationReplied,
-  moveStage,
-  nextStepFor,
   openApplications,
   ownAddresses,
   queuedApplicationEmails,
-  restoreNextStep,
-  setFirstResponseAt,
   setMailAccountStatus,
   setMailCursor,
-  setNextStep,
-  transitionForEmail,
   updateApplicationEmail,
   updateMailAccount,
+  updateSource,
   type ApplicationEmail,
   type Db,
-  type EmailUndo,
   type InterviewInput,
   type MailAccount,
   type MailAccountInput,
@@ -61,17 +53,24 @@ import {
   connectImap,
   describeMailError,
   readFolder,
-  testImapConnection,
+  testImapFolders,
+  type AlertFolderRead,
+  type FolderCount,
+  type AlertMailbox,
   type ImapAccount,
+  type MailConnector,
   type ReadOnlyImap,
 } from "@job-radar/sources";
 import { errorMessage, log, registerSecret } from "../log";
+import { applyPipelineUpdate, undoPipelineUpdate } from "../pipeline-updates";
 import type { Notifier } from "../notifier";
 import type { ProfileService } from "../profile-service";
 import { readSecretFile } from "../secrets";
 
 export const LOOKBACK_DAYS = 60;
 export const ACCOUNT_TIMEOUT_MS = 60_000;
+/** Job alerts: at most this many new messages per folder per run (job-alert-mailboxes D3). */
+export const ALERT_MESSAGES_PER_FOLDER = 200;
 
 export class MailError extends Error {
   constructor(
@@ -245,6 +244,64 @@ export class MailService {
     return this.view(a);
   }
 
+  /**
+   * Moves the old single-mailbox job-alert setup (email_alerts settings plus
+   * secrets/imap_app_password) onto the email account with that address, creating it if needed
+   * (job-alert-mailboxes D5). Idempotent; the old secret file is left in place.
+   */
+  migrateAlertMailbox(): { migrated: boolean; accountId?: number; created?: boolean } {
+    const source = getSource(this.o.db, "email_alerts");
+    const settings = (source?.settings ?? {}) as Record<string, unknown>;
+    if (!source || settings["migrated"] === true) return { migrated: false };
+    const user = typeof settings["user"] === "string" ? settings["user"].trim() : "";
+    const password = readSecretFile(this.o.secretsDir, "imap_app_password");
+    if (!user || !password) return { migrated: false };
+    registerSecret(password);
+    const label =
+      typeof settings["label"] === "string" && settings["label"].trim()
+        ? settings["label"].trim()
+        : "job-alerts";
+    const host =
+      typeof settings["host"] === "string" && settings["host"].trim()
+        ? settings["host"].trim()
+        : "imap.gmail.com";
+    const port = typeof settings["port"] === "number" ? settings["port"] : 993;
+    const existing = listMailAccounts(this.o.db).find(
+      (a) => a.address.toLowerCase() === user.toLowerCase(),
+    );
+    let accountId: number;
+    if (existing) {
+      updateMailAccount(
+        this.o.db,
+        existing.id,
+        {
+          jobAlerts: true,
+          alertFolders: existing.alertFolders.includes(label)
+            ? existing.alertFolders
+            : [...existing.alertFolders, label],
+        },
+        this.now(),
+      );
+      // An account added without a password can use the one the old setup had.
+      if (!this.password(existing.id)) this.savePassword(existing.id, password);
+      accountId = existing.id;
+    } else {
+      const created = createMailAccount(this.o.db, {
+        label: user.split("@")[1] ?? user,
+        address: user,
+        host,
+        port,
+        jobAlerts: true,
+        alertFolders: [label],
+      });
+      this.savePassword(created.id, password);
+      accountId = created.id;
+    }
+    updateSource(this.o.db, "email_alerts", { settings: { ...settings, migrated: true } });
+    log.info("job-alert mailbox moved to email accounts", { accountId, created: !existing });
+    return { migrated: true, accountId, created: !existing };
+  }
+
   deleteAccount(id: number): void {
     deleteMailAccount(this.o.db, id);
     rmSync(join(this.secretDir(), String(id)), { force: true });
@@ -262,17 +319,24 @@ export class MailService {
   }
 
   /** Read-only login and INBOX count; records the account status. */
-  async testAccount(id: number): Promise<{ ok: boolean; messages?: number; error?: string }> {
+  async testAccount(id: number): Promise<{
+    ok: boolean;
+    messages?: number;
+    alertFolders?: FolderCount[];
+    error?: string;
+  }> {
     const a = getMailAccount(this.o.db, id);
     if (!a) throw new MailError("Account not found", 404);
     try {
-      const messages = await withTimeout(
-        testImapConnection(this.connect(this.imapAccount(a))),
+      // Job alerts on: also count the alert folders (INBOX is already counted).
+      const extra = a.jobAlerts ? a.alertFolders.filter((f) => f.toUpperCase() !== "INBOX") : [];
+      const r = await withTimeout(
+        testImapFolders(this.connect(this.imapAccount(a)), extra),
         ACCOUNT_TIMEOUT_MS,
         `${a.host} did not answer within ${ACCOUNT_TIMEOUT_MS / 1000} s`,
       );
       setMailAccountStatus(this.o.db, id, { ok: true }, this.now());
-      return { ok: true, messages };
+      return { ok: true, messages: r.inbox, ...(extra.length ? { alertFolders: r.folders } : {}) };
     } catch (err) {
       const error = err instanceof MailError ? err.message : describeMailError(err, a.host);
       setMailAccountStatus(this.o.db, id, { ok: false, error }, this.now());
@@ -336,6 +400,88 @@ export class MailService {
     summary.queued = processed.queued;
     log.info("mail check", { ...summary });
     return summary;
+  }
+
+  /**
+   * Read-only access to the accounts with job alerts on, for the job-alert source
+   * (job-alert-mailboxes D3). Alert cursors are kept apart from the reply cursors.
+   */
+  alertConnector(): MailConnector {
+    return {
+      accounts: () =>
+        alertAccounts(this.o.db).map((a): AlertMailbox => {
+          const inboxIsAlertFolder = a.alertFolders.some((f) => f.toUpperCase() === "INBOX");
+          return {
+            id: a.id,
+            label: a.label,
+            folders: alertReadFolders(a).map((name) => ({
+              name,
+              knownSendersOnly: name.toUpperCase() === "INBOX" && !inboxIsAlertFolder,
+            })),
+          };
+        }),
+      read: (mailbox, folders, since) => {
+        const a = getMailAccount(this.o.db, mailbox.id);
+        if (!a) return Promise.reject(new MailError("Account not found", 404));
+        return withTimeout(
+          this.readAlerts(a, folders, since),
+          ACCOUNT_TIMEOUT_MS * 2,
+          `${a.host} did not answer within ${(ACCOUNT_TIMEOUT_MS * 2) / 1000} s`,
+        );
+      },
+    };
+  }
+
+  private async readAlerts(
+    a: MailAccount,
+    folders: Parameters<MailConnector["read"]>[1],
+    since: Date,
+  ): Promise<AlertFolderRead[]> {
+    const client = this.connect(this.imapAccount(a));
+    try {
+      await client.connect();
+    } catch (err) {
+      client.close();
+      throw new MailError(describeMailError(err, a.host));
+    }
+    const out: AlertFolderRead[] = [];
+    try {
+      for (const req of folders) {
+        try {
+          const result = await readFolder(
+            client,
+            req.folder,
+            getMailCursor(this.o.db, a.id, req.folder, "alerts"),
+            since,
+            (e) =>
+              req.accept({ fromAddress: e.fromAddress, fromName: e.fromName, subject: e.subject }),
+            { limit: ALERT_MESSAGES_PER_FOLDER },
+          );
+          out.push({
+            folder: req.folder,
+            emails: result.matched.map((m) => ({
+              messageId:
+                m.messageId ?? `no-id:${a.id}:${req.folder}:${result.cursor.uidValidity}:${m.uid}`,
+              from: m.from,
+              subject: m.subject,
+              date: m.sentAt ?? m.receivedAt,
+              html: m.html,
+              text: m.text || null,
+            })),
+          });
+          setMailCursor(this.o.db, a.id, req.folder, result.cursor, this.now(), "alerts");
+        } catch (err) {
+          out.push({
+            folder: req.folder,
+            emails: [],
+            error: describeMailError(err, a.host, req.folder),
+          });
+        }
+      }
+    } finally {
+      await client.logout().catch(() => client.close());
+    }
+    return out;
   }
 
   private async readAccount(a: MailAccount): Promise<{ scanned: number; matched: number }> {
@@ -526,63 +672,30 @@ export class MailService {
     if (!app) throw new MailError("Application not found", 404);
     const email = getApplicationEmail(db, emailId);
     if (!email) throw new MailError("Email not found", 404);
-    const prev = nextStepFor(db, applicationId);
-    const undo: EmailUndo = {
-      previousStage: app.stage,
-      targetStage: null,
-      transitionId: null,
-      previousNextStep: prev
-        ? {
-            description: prev.description,
-            dueAt: prev.dueAt?.getTime() ?? null,
-            doneAt: prev.doneAt?.getTime() ?? null,
-          }
-        : null,
-      nextStepId: null,
-      nextStep: null,
-      interviewId: null,
-      interviewScheduledAt: null,
-      previousFirstResponseAt: app.firstResponseAt?.getTime() ?? null,
-    };
     updateApplicationEmail(db, emailId, { applicationId, status }, at);
     this.emailTimeline({ ...email, status }, applicationId, app.offerId, "");
-
-    if (targetStage && targetStage !== app.stage) {
-      moveStage(db, applicationId, targetStage, {
-        note: "From email",
-        source: "email",
-        emailId,
-        at,
-      });
-      undo.targetStage = targetStage;
-      undo.transitionId = transitionForEmail(db, emailId)?.id ?? null;
-      if (targetStage === "rejected") completeNextStep(db, applicationId, at);
-    }
-    markApplicationReplied(db, applicationId, at);
-    if (reply.nextStep) {
-      const step = setNextStep(db, applicationId, reply.nextStep, at);
-      undo.nextStepId = step.id;
-      undo.nextStep = {
-        description: step.description,
-        dueAt: step.dueAt?.getTime() ?? null,
-      };
-    }
-    if (reply.interview?.scheduledAt && reply.interview.timeZone) {
-      const interview = addInterview(
-        db,
+    const iv = reply.interview;
+    const undo = applyPipelineUpdate(
+      db,
+      {
         applicationId,
-        {
-          type: INTERVIEW_TYPE[reply.interview.kind] ?? "other",
-          scheduledAt: reply.interview.scheduledAt,
-          timeZone: reply.interview.timeZone,
-          link: reply.interview.link,
-          prepNotes: `From email: ${email.subject}`,
-        },
+        targetStage,
+        note: "From email",
+        nextStep: reply.nextStep,
+        interview:
+          iv?.scheduledAt && iv.timeZone
+            ? {
+                type: INTERVIEW_TYPE[iv.kind] ?? "other",
+                scheduledAt: iv.scheduledAt,
+                timeZone: iv.timeZone,
+                link: iv.link,
+                prepNotes: `From email: ${email.subject}`,
+              }
+            : undefined,
         at,
-      );
-      undo.interviewId = interview.id;
-      undo.interviewScheduledAt = interview.scheduledAt.getTime();
-    }
+      },
+      { source: "email", emailId },
+    );
     const row = updateApplicationEmail(db, emailId, { undo }, at);
     if (undo.targetStage && isInterviewStage(undo.targetStage))
       this.o.onInterviewStage?.(applicationId);
@@ -655,42 +768,13 @@ export class MailService {
     const app = getApplication(db, appId);
     if (!app) throw new MailError("Application not found", 404);
     const at = this.now();
-    const left: string[] = [];
-    if (u.targetStage) {
-      if (app.stage === u.targetStage) {
-        moveStage(db, appId, u.previousStage, {
-          note: "Undo email update",
-          source: "email",
-          emailId,
-          at,
-        });
-        setFirstResponseAt(
-          db,
-          appId,
-          u.previousFirstResponseAt === null ? null : new Date(u.previousFirstResponseAt),
-        );
-      } else left.push("the stage (it was changed after the email)");
-    }
-    if (u.interviewId) {
-      const iv = getInterview(db, u.interviewId);
-      if (iv && iv.scheduledAt.getTime() === u.interviewScheduledAt)
-        deleteInterview(db, u.interviewId);
-      else if (iv) left.push("the interview (it was edited)");
-    }
-    const step = nextStepFor(db, appId);
-    const stepUnchanged =
-      step &&
-      u.nextStep &&
-      step.id === u.nextStepId &&
-      step.description === u.nextStep.description &&
-      (step.dueAt?.getTime() ?? null) === u.nextStep.dueAt;
-    if (u.nextStepId) {
-      if (stepUnchanged) restoreNextStep(db, appId, u.previousNextStep);
-      else left.push("the next step (it was edited)");
-    } else if (u.targetStage === "rejected" && u.previousNextStep && !u.previousNextStep.doneAt) {
-      // The rejection marked the pending next step done.
-      if (step?.doneAt) restoreNextStep(db, appId, u.previousNextStep);
-    }
+    const left = undoPipelineUpdate(
+      db,
+      appId,
+      u,
+      { source: "email", emailId },
+      { note: "Undo email update", changedAfter: "the email", at },
+    );
     updateApplicationEmail(db, emailId, { status: "undone" }, at);
     const message = left.length ? `Undone, except ${left.join(" and ")}` : "Undone";
     addTimelineEvent(db, {

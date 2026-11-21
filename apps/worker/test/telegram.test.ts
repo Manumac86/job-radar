@@ -1,4 +1,9 @@
-import { getOffer, insertApplicationEmail, listNotifications } from "@job-radar/db";
+import {
+  getOffer,
+  insertApplicationEmail,
+  insertPortalApplication,
+  listNotifications,
+} from "@job-radar/db";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
@@ -252,6 +257,59 @@ describe("email alerts with buttons", () => {
     await s.telegram.bot.handleUpdate(callback(999, `em:apply:${email.id}`, 20));
     expect(actions).toEqual([]);
     expect(s.calls.some((c) => c.method === "answerCallbackQuery")).toBe(false);
+  });
+
+  it("portal alerts use pa: buttons routed to the portal actions, owner only", async () => {
+    const s = await setup(() => new Date("2026-11-15T12:00:00Z"));
+    const row = insertPortalApplication(s.db, {
+      source: "mygreenhouse",
+      portalId: "1",
+      company: "Northwind",
+      title: "Engineer",
+      lastStatus: "inactive",
+      statusSeenAt: new Date("2026-11-15T10:00:00Z"),
+      category: "closed",
+      status: "suggested",
+      candidates: [7],
+      pending: { targetStage: "rejected", reasons: ["inactive"] },
+    });
+    const portal: string[] = [];
+    const mail: string[] = [];
+    s.telegram.setMail({
+      undo: (id) => (mail.push(`undo:${id}`), { ok: true, message: "Undone" }),
+      apply: (id) => (mail.push(`apply:${id}`), { ok: true, message: "Applied" }),
+      dismiss: (id) => (mail.push(`dismiss:${id}`), { ok: true, message: "Dismissed" }),
+    });
+    s.telegram.setPortal({
+      undo: (id) => (portal.push(`undo:${id}`), { ok: true, message: "Undone" }),
+      apply: (id) => (
+        portal.push(`apply:${id}`),
+        { ok: portal.length === 1, message: portal.length === 1 ? "Applied" : "Already applied" }
+      ),
+      dismiss: (id) => (portal.push(`dismiss:${id}`), { ok: true, message: "Dismissed" }),
+    });
+    s.notifier.notify({
+      kind: "portal_rejection",
+      title: "Suggested: MyGreenhouse update for Northwind (Engineer)",
+      body: "MyGreenhouse shows: inactive",
+      dedupeKey: `portal:${row.id}:inactive`,
+    });
+    await s.flush(1);
+    const markup = sends(s.calls)[0]!.body["reply_markup"] as {
+      inline_keyboard: { text: string; callback_data: string }[][];
+    };
+    expect(markup.inline_keyboard[0]).toEqual([
+      { text: "Apply", callback_data: `pa:apply:${row.id}` },
+      { text: "Dismiss", callback_data: `pa:dismiss:${row.id}` },
+    ]);
+    await s.telegram.bot.init();
+    await s.telegram.bot.handleUpdate(callback(999, `pa:apply:${row.id}`, 30));
+    expect(portal).toEqual([]);
+    await s.telegram.bot.handleUpdate(callback(Number(OWNER), `pa:apply:${row.id}`, 31));
+    await s.telegram.bot.handleUpdate(callback(Number(OWNER), `pa:apply:${row.id}`, 32));
+    expect(portal).toEqual([`apply:${row.id}`, `apply:${row.id}`]);
+    expect(mail).toEqual([]);
+    expect(s.calls.filter((c) => c.method === "editMessageText")).toHaveLength(1);
   });
 
   it("email alerts are held during quiet hours", async () => {

@@ -43,6 +43,9 @@ export interface MailAccountView {
   port: number;
   folders: string[];
   enabled: boolean;
+  jobAlerts: boolean;
+  alertFolders: string[];
+  alertsInInbox: boolean;
   status: "new" | "ok" | "failed";
   lastError: string | null;
   lastCheckedAt: string | null;
@@ -83,6 +86,9 @@ interface Draft {
   port: string;
   folders: string;
   enabled: boolean;
+  jobAlerts: boolean;
+  alertFolders: string;
+  alertsInInbox: boolean;
   password: string;
   hasPassword: boolean;
 }
@@ -95,9 +101,27 @@ const EMPTY: Draft = {
   port: "993",
   folders: "INBOX",
   enabled: true,
+  jobAlerts: false,
+  alertFolders: "",
+  alertsInInbox: false,
   password: "",
   hasPassword: false,
 };
+
+const splitFolders = (v: string) =>
+  v
+    .split(",")
+    .map((f) => f.trim())
+    .filter(Boolean);
+
+/** "job-alerts, INBOX (alert senders only)" for the account list. */
+function alertSummary(a: MailAccountView): string {
+  const parts = [...a.alertFolders];
+  if (a.alertsInInbox && !parts.some((f) => f.toUpperCase() === "INBOX")) {
+    parts.push("INBOX (alert senders only)");
+  }
+  return parts.length ? parts.join(", ") : "no folder chosen";
+}
 
 const when = (iso: string | null) =>
   iso
@@ -146,6 +170,9 @@ export function MailAccountsCard({
       port: String(a.port),
       folders: a.folders.join(", "),
       enabled: a.enabled,
+      jobAlerts: a.jobAlerts,
+      alertFolders: a.alertFolders.join(", "),
+      alertsInInbox: a.alertsInInbox,
       password: "",
       hasPassword: a.hasPassword,
     });
@@ -157,9 +184,9 @@ export function MailAccountsCard({
         <CardTitle>Email accounts</CardTitle>
         <CardDescription>
           Job Radar checks these mailboxes every {checkMinutes} minutes for replies to your
-          applications. Mailboxes are opened read-only: nothing is marked as read, moved, deleted or
-          answered. Only emails from a company you applied to, or from a hiring platform that names
-          it, are sent to Claude.
+          applications, and reads job alerts from the accounts where you turn them on. Mailboxes are
+          opened read-only: nothing is marked as read, moved, deleted or answered. Only emails from
+          a company you applied to, or from a hiring platform that names it, are sent to Claude.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -184,6 +211,11 @@ export function MailAccountsCard({
                   <p className="text-muted-foreground [overflow-wrap:anywhere]">
                     {a.address} · {a.host} · {a.folders.join(", ")}
                   </p>
+                  {a.jobAlerts ? (
+                    <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                      Job alerts: {alertSummary(a)}
+                    </p>
+                  ) : null}
                   <p className="text-xs text-muted-foreground">
                     Last check {when(a.lastCheckedAt)}
                     {a.hasPassword ? "" : " · no app password saved"}
@@ -268,11 +300,11 @@ export function MailAccountsCard({
                       address: editing.address,
                       host: editing.host,
                       port: editing.port,
-                      folders: editing.folders
-                        .split(",")
-                        .map((f) => f.trim())
-                        .filter(Boolean),
+                      folders: splitFolders(editing.folders),
                       enabled: editing.enabled,
+                      jobAlerts: editing.jobAlerts,
+                      alertFolders: splitFolders(editing.alertFolders),
+                      alertsInInbox: editing.alertsInInbox,
                       password: editing.password,
                     }),
                   () => setEditing(null),
@@ -362,7 +394,7 @@ export function MailAccountsCard({
                 </p>
               </div>
               <div className="space-y-1">
-                <Label htmlFor="mail-folders">Folders</Label>
+                <Label htmlFor="mail-folders">Folders for replies</Label>
                 <Input
                   id="mail-folders"
                   value={editing.folders}
@@ -379,6 +411,47 @@ export function MailAccountsCard({
                 />
                 Check this account
               </Label>
+              <fieldset className="space-y-2 rounded-md border p-3" aria-label="Job alerts">
+                <Label className="flex items-center gap-2 text-sm font-medium">
+                  <Checkbox
+                    checked={editing.jobAlerts}
+                    onCheckedChange={(v) => setEditing({ ...editing, jobAlerts: v === true })}
+                  />
+                  Read job alerts from this account
+                </Label>
+                {editing.jobAlerts ? (
+                  <>
+                    <div className="space-y-1">
+                      <Label htmlFor="mail-alert-folders">Alert folders or labels</Label>
+                      <Input
+                        id="mail-alert-folders"
+                        value={editing.alertFolders}
+                        placeholder="e.g. job-alerts"
+                        onChange={(e) => setEditing({ ...editing, alertFolders: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Comma-separated. Every message in these folders is read as a job alert.
+                      </p>
+                    </div>
+                    <Label className="flex items-start gap-2 text-sm font-normal">
+                      <Checkbox
+                        className="mt-0.5"
+                        checked={editing.alertsInInbox}
+                        onCheckedChange={(v) =>
+                          setEditing({ ...editing, alertsInInbox: v === true })
+                        }
+                      />
+                      Also look in INBOX (only alerts from LinkedIn, Upwork, Malt, Wellfound and
+                      Greenhouse; other mail there is never read)
+                    </Label>
+                    {!splitFolders(editing.alertFolders).length && !editing.alertsInInbox ? (
+                      <p className="text-xs text-destructive" role="status">
+                        Choose a folder or INBOX.
+                      </p>
+                    ) : null}
+                  </>
+                ) : null}
+              </fieldset>
               <DialogFooter>
                 <Button type="button" variant="ghost" onClick={() => setEditing(null)}>
                   Cancel

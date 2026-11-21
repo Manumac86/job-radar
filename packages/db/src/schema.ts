@@ -23,6 +23,7 @@ export const SOURCE_TYPES = [
   "linkedin",
   /** SimpleApply: CSV import and the logged-in dashboard reader (simpleapply-source). */
   "simpleapply",
+  "mygreenhouse",
   /** Offers the owner added from a link (Offers → Add from link); never polled. */
   "manual",
   "fake",
@@ -121,10 +122,13 @@ export const NOTIFICATION_KINDS = [
   "email_next_step",
   "email_offer",
   "email_rejection",
+  "portal_next_step",
+  "portal_offer",
+  "portal_rejection",
 ] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
-export const TRANSITION_SOURCES = ["manual", "email"] as const;
+export const TRANSITION_SOURCES = ["manual", "email", "greenhouse"] as const;
 export type TransitionSource = (typeof TRANSITION_SOURCES)[number];
 
 export const EMAIL_CATEGORIES = [
@@ -149,6 +153,26 @@ export const EMAIL_STATUSES = [
   "timeline_only",
 ] as const;
 export type EmailStatus = (typeof EMAIL_STATUSES)[number];
+/** Portal status updates (mygreenhouse-source D4): the same lifecycle as email updates. */
+export const PORTAL_UPDATE_STATUSES = [
+  "auto_applied",
+  "suggested",
+  "applied",
+  "dismissed",
+  "undone",
+  "timeline_only",
+] as const;
+export type PortalUpdateStatus = (typeof PORTAL_UPDATE_STATUSES)[number];
+export const PORTAL_CATEGORIES = [
+  "acknowledgement",
+  "in_review",
+  "interview",
+  "offer",
+  "rejection",
+  "closed",
+  "unknown",
+] as const;
+export type PortalCategory = (typeof PORTAL_CATEGORIES)[number];
 export const MAIL_ACCOUNT_STATUSES = ["new", "ok", "failed"] as const;
 
 export const TELEGRAM_STATUSES = ["pending", "held", "sent", "skipped", "failed"] as const;
@@ -442,6 +466,8 @@ export const stageTransitions = sqliteTable(
     source: text("source", { enum: TRANSITION_SOURCES }).notNull().default("manual"),
     /** The application email that made this change, when source is "email". */
     emailId: integer("email_id"),
+    /** The portal application row that made this change, when source is "greenhouse". */
+    portalApplicationId: integer("portal_application_id"),
     at: integer("at", { mode: "timestamp_ms" }).notNull().default(now),
   },
   (t) => [index("stage_transitions_app_idx").on(t.applicationId, t.at)],
@@ -692,6 +718,10 @@ export const mailAccounts = sqliteTable("mail_accounts", {
   host: text("host").notNull(),
   port: integer("port").notNull().default(993),
   folders: text("folders", { mode: "json" }).$type<string[]>().notNull().default(["INBOX"]),
+  /** Job alerts (job-alert-mailboxes D1): read alert folders, and optionally known senders in INBOX. */
+  jobAlerts: integer("job_alerts", { mode: "boolean" }).notNull().default(false),
+  alertFolders: text("alert_folders", { mode: "json" }).$type<string[]>().notNull().default([]),
+  alertsInInbox: integer("alerts_in_inbox", { mode: "boolean" }).notNull().default(false),
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
   status: text("status", { enum: MAIL_ACCOUNT_STATUSES }).notNull().default("new"),
   lastError: text("last_error"),
@@ -700,7 +730,10 @@ export const mailAccounts = sqliteTable("mail_accounts", {
   updatedAt: updatedAt(),
 });
 
-/** Where reading stopped in each folder (IMAP UIDVALIDITY + last UID). */
+export const MAIL_CURSOR_PURPOSES = ["replies", "alerts"] as const;
+export type MailCursorPurpose = (typeof MAIL_CURSOR_PURPOSES)[number];
+
+/** Where reading stopped in each folder (IMAP UIDVALIDITY + last UID), per reader. */
 export const mailCursors = sqliteTable(
   "mail_cursors",
   {
@@ -708,11 +741,13 @@ export const mailCursors = sqliteTable(
       .notNull()
       .references(() => mailAccounts.id, { onDelete: "cascade" }),
     folder: text("folder").notNull(),
+    /** Replies and job alerts read the same folders on different schedules. */
+    purpose: text("purpose", { enum: MAIL_CURSOR_PURPOSES }).notNull().default("replies"),
     uidValidity: text("uid_validity").notNull(),
     lastUid: integer("last_uid").notNull().default(0),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex("mail_cursors_uq").on(t.accountId, t.folder)],
+  (t) => [uniqueIndex("mail_cursors_uq").on(t.accountId, t.folder, t.purpose)],
 );
 
 /** What an automatic update changed, so Undo can revert it (application-emails D6). */
@@ -763,5 +798,46 @@ export const applicationEmails = sqliteTable(
     uniqueIndex("application_emails_message_uq").on(t.messageId),
     index("application_emails_app_idx").on(t.applicationId, t.receivedAt),
     index("application_emails_status_idx").on(t.status),
+  ],
+);
+
+/**
+ * Applications read from a candidate portal (mygreenhouse-source D4): one row per portal
+ * application, updated only when its status changes. Holds the latest update and its Undo.
+ */
+export const portalApplications = sqliteTable(
+  "portal_applications",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    source: text("source").notNull(),
+    /** The portal's application id. */
+    portalId: text("portal_id").notNull(),
+    /** `<board>:<jobId>` when the portal links a public job. */
+    jobKey: text("job_key"),
+    company: text("company").notNull(),
+    title: text("title").notNull(),
+    url: text("url"),
+    applicationId: integer("application_id").references(() => applications.id, {
+      onDelete: "set null",
+    }),
+    lastStatus: text("last_status").notNull(),
+    statusSeenAt: integer("status_seen_at", { mode: "timestamp_ms" }).notNull(),
+    category: text("category", { enum: PORTAL_CATEGORIES }).notNull(),
+    /** Candidate application ids when matching was not sure. */
+    candidates: text("candidates", { mode: "json" }).$type<number[]>().notNull().default([]),
+    status: text("status", { enum: PORTAL_UPDATE_STATUSES }).notNull(),
+    /** The suggested or applied target stage, and why it was not applied automatically. */
+    pending: text("pending", { mode: "json" }).$type<{
+      targetStage: string | null;
+      reasons: string[];
+    }>(),
+    undo: text("undo", { mode: "json" }).$type<EmailUndo>(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("portal_applications_uq").on(t.source, t.portalId),
+    index("portal_applications_app_idx").on(t.applicationId),
+    index("portal_applications_status_idx").on(t.status),
   ],
 );

@@ -9,6 +9,8 @@ import {
   offerLinksFor,
   offerTimeline,
   emailsForApplication,
+  pendingPortalSuggestions,
+  portalUpdatesForApplication,
   pendingEmailSuggestions,
   scoreHistory,
 } from "@job-radar/db";
@@ -20,8 +22,10 @@ import { ScoreBadge } from "@/components/score-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmailEntry } from "@/components/email-entry";
+import { PortalEntry } from "@/components/portal-entry";
 import { db } from "@/lib/db";
 import { toEmailView } from "@/lib/emails";
+import { toPortalView } from "@/lib/portal-updates";
 import {
   ENGAGEMENT_LABELS,
   formatDate,
@@ -127,6 +131,21 @@ export default async function OfferPage({ params }: { params: Params }) {
       toEmailView(e, suggestionCandidates.get(e.id)),
     ]),
   );
+  const portalCandidates = new Map(
+    pendingPortalSuggestions(d).map((s) => [s.update.id, s.candidates]),
+  );
+  // The latest state of each portal update is shown once, at its newest timeline entry.
+  const portalById = new Map(
+    (application ? portalUpdatesForApplication(d, application.id) : []).map((u) => [
+      u.id,
+      toPortalView(
+        u,
+        portalCandidates.get(u.id),
+        (key) => listStages(d).find((s) => s.key === key)?.label ?? key,
+      ),
+    ]),
+  );
+  const portalShown = new Set<number>();
   const dismissal = offer.triage === "dismissed" ? currentDismissal(d, offerId) : undefined;
   const stages = listStages(d);
   const interviews = application ? interviewsFor(d, application.id) : [];
@@ -432,14 +451,25 @@ export default async function OfferPage({ params }: { params: Params }) {
                   const email =
                     e.kind === "email" ? emailsById.get(Number(e.data["emailId"])) : undefined;
                   const fromEmail = e.kind === "stage_changed" && e.data["source"] === "email";
+                  const fromPortal =
+                    e.kind === "stage_changed" && e.data["source"] === "greenhouse";
+                  const portalId = Number(e.data["portalApplicationId"]);
+                  const portalUpdate =
+                    e.kind === "portal_status" && !portalShown.has(portalId)
+                      ? portalById.get(portalId)
+                      : undefined;
+                  if (portalUpdate) portalShown.add(portalId);
                   return (
                     <li key={e.id}>
                       <span className="text-xs text-muted-foreground tabular-nums">
                         {formatDate(e.at, true)}
                         {fromEmail ? " · from email" : ""}
+                        {fromPortal ? " · from MyGreenhouse" : ""}
                       </span>
                       {email ? (
                         <EmailEntry email={email} />
+                      ) : portalUpdate ? (
+                        <PortalEntry update={portalUpdate} />
                       ) : (
                         <div className="[overflow-wrap:anywhere]">{e.message}</div>
                       )}

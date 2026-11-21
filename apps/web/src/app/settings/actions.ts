@@ -178,28 +178,21 @@ export async function rescoreOpenOffers(): Promise<ActionResult> {
 }
 
 const emailSchema = z.object({
-  user: z.string().trim().email("enter the mailbox address"),
-  label: z.string().trim().min(1).max(100),
-  host: z.string().trim().min(1).max(200),
-  port: z.coerce.number().int().min(1).max(65535),
   lookbackDays: z.coerce.number().int().min(1).max(30),
 });
 
+/** The job-alert source's look-back; mailboxes are email accounts (job-alert-mailboxes). */
 export async function saveEmailSource(form: z.input<typeof emailSchema>): Promise<ActionResult> {
   const parsed = emailSchema.safeParse(form);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues.map((i) => i.message).join("; ") };
   const source = getSource(db(), "email_alerts");
   if (!source) return { ok: false, error: "Start the worker once so the email source exists" };
-  const { user, label, host, port, lookbackDays } = parsed.data;
   updateSource(db(), "email_alerts", {
-    settings: { ...source.settings, user, label, host, port, lookback_days: lookbackDays },
+    settings: { ...source.settings, lookback_days: parsed.data.lookbackDays },
   });
   revalidatePath("/settings");
-  return {
-    ok: true,
-    message: "Mailbox settings saved (the app password stays in secrets/imap_app_password)",
-  };
+  return { ok: true, message: "Job-alert settings saved" };
 }
 
 export async function createCustomStage(label: string, after: string): Promise<ActionResult> {

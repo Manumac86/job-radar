@@ -77,6 +77,13 @@ describe("read-only guard", () => {
     }
   });
 
+  it("refuses MyGreenhouse's quick apply, dream job and withdraw controls (mygreenhouse-source)", () => {
+    for (const bad of ["Quick apply", "Dream job", "Mark as dream job", "Withdraw application"]) {
+      expect(() => assertSafeLabel(bad)).toThrow(ForbiddenActionError);
+    }
+    expect(() => assertSafeLabel("Next page")).not.toThrow();
+  });
+
   it("caps page views per site per hour and waits at least 5 s between pages", async () => {
     const { page, ro, sleeps } = await setup(2);
     await ro.goto(url(1));

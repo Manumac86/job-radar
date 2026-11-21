@@ -45,6 +45,7 @@ import { sendFollowUpReminders, sendInterviewReminders, suggestNoResponse } from
 import { PrepService } from "./pipeline/prep";
 import { LearningService } from "./learning/service";
 import { MailService } from "./mail/service";
+import { PortalService } from "./portal/service";
 import { ResearchService } from "./research/service";
 import { ensureManualSource } from "./ingest/import";
 import { readSecretFile } from "./secrets";
@@ -61,6 +62,7 @@ export interface Worker extends Required<
     | "research"
     | "llm"
     | "mail"
+    | "portal"
   >
 > {
   db: Db;
@@ -145,6 +147,18 @@ export function createWorker(
     ...(options.mailConnect ? { connect: options.mailConnect } : {}),
   });
   telegram?.setMail(mail);
+  const portal = new PortalService({
+    db,
+    notifier,
+    onInterviewStage: (id) => void prep.autoPrepare(id),
+  });
+  telegram?.setPortal(portal);
+  // The old single-mailbox job-alert setup becomes settings on an email account (once).
+  try {
+    mail.migrateAlertMailbox();
+  } catch (err) {
+    log.warn("job-alert mailbox migration failed", { error: errorMessage(err) });
+  }
   // After research, the company's open offers are rescored with the profile (design D6).
   // A profile without any sourced fact changes nothing, so it does not spend scoring calls.
   research.onFinished((row) => {
@@ -179,6 +193,8 @@ export function createWorker(
     adapters,
     llm: { client, budget },
     browser,
+    mail: mail.alertConnector(),
+    portal,
     onNewOffers: (ids) => scoring.enqueue(ids),
   });
 
@@ -194,6 +210,7 @@ export function createWorker(
     learning,
     research,
     mail,
+    portal,
     llm: { client, budget },
     telegram,
     browser,

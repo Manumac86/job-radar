@@ -7,6 +7,7 @@ import { simpleApplyRoutes } from "./routes/simpleapply";
 import { prepRoutes } from "./routes/prep";
 import { learningRoutes } from "./routes/learning";
 import { mailRoutes } from "./routes/mail";
+import { portalRoutes } from "./routes/portal";
 import { researchRoutes } from "./routes/research";
 import { statusRoutes } from "./routes/status";
 import { notificationRoutes, telegramRoutes } from "./routes/notifications";
@@ -34,6 +35,7 @@ export function createApp(ctx: WorkerContext) {
   app.use(simpleApplyRoutes(ctx));
   app.use(learningRoutes(ctx));
   app.use(mailRoutes(ctx));
+  app.use(portalRoutes(ctx));
   app.use(researchRoutes(ctx));
   app.use(notificationRoutes(ctx));
   app.use(telegramRoutes(ctx));

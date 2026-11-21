@@ -6,7 +6,7 @@ Collects remote job offers and freelance projects from configured sources, norma
 ## Requirements
 
 ### Requirement: Configurable sources
-The system SHALL support a registry of sources, each with a type, an enabled flag, a polling interval and source-specific settings. Supported types in this change: public ATS job boards (Greenhouse, Lever, Ashby) for a configured list of companies, the Y Combinator startup jobs board (Work at a Startup), the Hacker News "Who is hiring" monthly thread, public remote-job feeds (RSS or JSON), job-alert emails read from a dedicated mailbox label, and logged-in site adapters (see browser-sessions).
+The system SHALL support a registry of sources, each with a type, an enabled flag, a polling interval and source-specific settings. Supported types in this change: public ATS job boards (Greenhouse, Lever, Ashby) for a configured list of companies, the Y Combinator startup jobs board (Work at a Startup), the Hacker News "Who is hiring" monthly thread, public remote-job feeds (RSS or JSON), job-alert emails read from the owner's email accounts (see "Job-alert emails from email accounts"), and logged-in site adapters (see browser-sessions).
 
 #### Scenario: Disable a source
 - **WHEN** the owner disables a source in Settings
@@ -99,3 +99,59 @@ The owner SHALL be able to add an offer by pasting its link (Offers → "Add fro
 #### Scenario: Owner's choice skips the pre-filter
 - **WHEN** an imported offer would fail the keyword or remote pre-filter
 - **THEN** it is still stored as new and scored, because the owner chose it
+
+### Requirement: MyGreenhouse logged-in source
+The system SHALL offer a "MyGreenhouse (logged-in)" source, disabled by default, that reads my.greenhouse.io with the owner's session from the isolated browser profile. Each run SHALL read the job search for each of the owner's search keywords and the roles recommended to the owner, and store them as normalized offers that keep the Greenhouse board and job id.
+
+#### Scenario: Recommended role imported
+- **WHEN** MyGreenhouse recommends a remote Staff Engineer role at Northwind
+- **THEN** a run stores it as an offer from the MyGreenhouse source with its Greenhouse job link, and it is scored like any other offer
+
+#### Scenario: Same job from a polled board
+- **WHEN** the same Greenhouse job is already known from Northwind's board in companies.yaml
+- **THEN** the MyGreenhouse run does not create a second offer
+
+#### Scenario: Logged out
+- **WHEN** a run lands on the MyGreenhouse sign-in page
+- **THEN** the source is marked "session expired" and the owner is notified to log in again
+
+### Requirement: MyGreenhouse stays read-only
+The MyGreenhouse source SHALL follow the read-only, paced browsing rules of browser-sessions and SHALL NOT click apply, quick apply, dream job, save or withdraw controls. The owner SHALL log in by hand, including the emailed one-time code, which the system never sees or stores.
+
+#### Scenario: Quick apply button on a card
+- **WHEN** a recommended role shows a "Quick apply" button
+- **THEN** the run reads the card without clicking it, and any attempt to click it is blocked by the guard
+
+### Requirement: Job-alert emails from email accounts
+The job-alert source SHALL read every enabled email account that has job alerts turned on, using that account's saved app password. In the account's alert folders it SHALL parse every message, falling back to model extraction for unknown senders or layouts. In INBOX, when the account asks for it, it SHALL parse only messages from known job-alert senders (LinkedIn, Upwork, Malt, Wellfound, Greenhouse) and SHALL NOT send any INBOX message to the model.
+
+#### Scenario: Alerts in two mailboxes
+- **WHEN** a LinkedIn alert arrives in the Gmail `job-alerts` label and a Greenhouse alert arrives in the iCloud INBOX, and both accounts have job alerts on (iCloud with "Also look in INBOX")
+- **THEN** one run imports the offers from both emails and both messages stay unread
+
+#### Scenario: Personal email in INBOX
+- **WHEN** an INBOX message comes from a sender that is not a known job-alert sender
+- **THEN** it is not parsed, not stored and not sent to the model
+
+#### Scenario: The same alert in two mailboxes
+- **WHEN** the same alert is forwarded to two accounts
+- **THEN** its offers are imported once
+
+#### Scenario: One account fails
+- **WHEN** one account rejects the login during a run
+- **THEN** the other accounts are still read and the run records an error naming the failed account
+
+#### Scenario: Existing setup is kept
+- **WHEN** the app starts with the old single-mailbox settings and `secrets/imap_app_password`
+- **THEN** the email account with that address has job alerts on with that label as an alert folder (created from those settings if it did not exist), and the next run reads it without the owner re-entering anything
+
+### Requirement: Read-only incremental alert reading
+The job-alert source SHALL open folders read-only and never mark, move or delete mail. It SHALL read each account and folder incrementally, independently of the reply reader, starting the first time from the source's look-back window.
+
+#### Scenario: Second run reads only new mail
+- **WHEN** a run has read an alert folder and no new message has arrived since
+- **THEN** the next run fetches no message from that folder
+
+#### Scenario: Replies and alerts share INBOX
+- **WHEN** an account reads INBOX both for replies and for alerts
+- **THEN** each reader keeps its own position, so reading one never makes the other skip messages

@@ -1,3 +1,4 @@
+import type { SourceContext } from "./types";
 import { stripHtml } from "@job-radar/core";
 
 const ENTITIES: Record<string, string> = {
@@ -71,4 +72,15 @@ export function toDate(value: string | number | null | undefined): Date | null {
   if (value === null || value === undefined || value === "") return null;
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** Search terms: `queries` from the source settings, else role-like include keywords. */
+export function searchTerms(ctx: SourceContext): string[] {
+  const custom = ctx.settings["queries"];
+  if (Array.isArray(custom) && custom.length) return custom.map(String);
+  // Role-like include keywords make the best searches.
+  const k = ctx.preferences.keywords.include.filter((w) =>
+    /engineer|cto|head|lead|manager|developer|ai|rag|next\.js/i.test(w),
+  );
+  return k.length ? k : ctx.preferences.keywords.include;
 }

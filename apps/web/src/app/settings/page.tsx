@@ -100,10 +100,6 @@ export default async function SettingsPage({
         }}
         email={{
           exists: Boolean(email),
-          user: typeof es["user"] === "string" ? es["user"] : "",
-          label: typeof es["label"] === "string" ? es["label"] : "job-alerts",
-          host: typeof es["host"] === "string" ? es["host"] : "imap.gmail.com",
-          port: typeof es["port"] === "number" ? es["port"] : 993,
           lookbackDays: typeof es["lookback_days"] === "number" ? es["lookback_days"] : 3,
         }}
         mail={{

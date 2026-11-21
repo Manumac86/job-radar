@@ -10,6 +10,8 @@ test("drag a card to 'Technical interview' and add an interview", async ({ page 
 
   // Drag with the pointer, the same way a person would.
   const handle = card.getByTestId("drag-handle");
+  // Cards to review above the board can push it below the fold.
+  await handle.scrollIntoViewIfNeeded();
   const from = (await handle.boundingBox())!;
   const to = (await technical.boundingBox())!;
   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);

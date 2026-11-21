@@ -55,10 +55,6 @@ interface Props {
   };
   email: {
     exists: boolean;
-    user: string;
-    label: string;
-    host: string;
-    port: number;
     lookbackDays: number;
   };
   stages: { key: string; label: string; custom: boolean }[];
@@ -154,37 +150,47 @@ function ProfileFiles({ cv, cvVariants }: { cv: string; cvVariants: Props["cvVar
   );
 }
 
-function EmailForm({ email }: { email: Props["email"] }) {
+function EmailForm({
+  email,
+  accounts,
+  onOpenEmail,
+}: {
+  email: Props["email"];
+  accounts: MailAccountView[];
+  onOpenEmail: () => void;
+}) {
   const { pending, run } = useAction();
+  const alertAccounts = accounts.filter((a) => a.enabled && a.jobAlerts);
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>;
-    run(() =>
-      saveEmailSource({
-        user: f["user"] ?? "",
-        label: f["label"] ?? "",
-        host: f["host"] ?? "",
-        port: f["port"] ?? "993",
-        lookbackDays: f["lookbackDays"] ?? "3",
-      }),
-    );
+    run(() => saveEmailSource({ lookbackDays: f["lookbackDays"] ?? "3" }));
   };
   return (
-    <Card>
+    <Card data-testid="job-alert-emails">
       <CardHeader>
         <CardTitle>Job-alert emails</CardTitle>
         <CardDescription>
-          Read-only access to one mailbox label. For Gmail: create a label (e.g.{" "}
-          <code>job-alerts</code>), a filter that labels alerts from LinkedIn, Upwork, Malt and
-          Wellfound, and an app password saved to <code>secrets/imap_app_password</code>.
+          Job alerts are read from your email accounts, read-only. Turn them on and choose folders
+          or labels for each account in{" "}
+          <button type="button" className="underline" onClick={onOpenEmail}>
+            Settings → Email
+          </button>
+          . Alerts from LinkedIn, Upwork, Malt, Wellfound and Greenhouse are parsed directly; other
+          senders in an alert folder are read by Claude.
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={submit} className="grid gap-4 sm:grid-cols-3" aria-label="Mailbox settings">
-          <Field label="Mailbox address" name="user" defaultValue={email.user} />
-          <Field label="Label" name="label" defaultValue={email.label} />
-          <Field label="IMAP host" name="host" defaultValue={email.host} />
-          <Field label="Port" name="port" type="number" defaultValue={email.port} />
+      <CardContent className="space-y-3">
+        <p className="text-sm">
+          {alertAccounts.length
+            ? `Reading job alerts from: ${alertAccounts.map((a) => a.label).join(", ")}.`
+            : "No account has job alerts on yet."}
+        </p>
+        <form
+          onSubmit={submit}
+          className="flex flex-wrap items-end gap-3"
+          aria-label="Job-alert settings"
+        >
           <Field
             label="Look back (days)"
             name="lookbackDays"
@@ -193,14 +199,13 @@ function EmailForm({ email }: { email: Props["email"] }) {
             max={30}
             defaultValue={email.lookbackDays}
           />
-          <div className="flex items-end">
-            <Button type="submit" disabled={pending || !email.exists}>
-              Save mailbox
-            </Button>
-          </div>
+          <Button type="submit" disabled={pending || !email.exists}>
+            Save
+          </Button>
         </form>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Enable sources and set their intervals on the{" "}
+        <p className="text-sm text-muted-foreground">
+          The first read of each folder goes back this many days. Enable sources and set their
+          intervals on the{" "}
           <Link href="/sources" className="underline">
             Sources
           </Link>{" "}
@@ -361,8 +366,9 @@ function StatusPanel({
 }
 
 export function SettingsTabs(props: Props) {
+  const [tab, setTab] = useState(props.initialTab ?? "preferences");
   return (
-    <Tabs defaultValue={props.initialTab ?? "preferences"}>
+    <Tabs value={tab} onValueChange={setTab}>
       <TabsList className="mb-4 flex-wrap">
         <TabsTrigger value="preferences">Preferences</TabsTrigger>
         <TabsTrigger value="general">General</TabsTrigger>
@@ -390,7 +396,11 @@ export function SettingsTabs(props: Props) {
         <MailAccountsCard {...props.mail} />
       </TabsContent>
       <TabsContent value="sources">
-        <EmailForm email={props.email} />
+        <EmailForm
+          email={props.email}
+          accounts={props.mail.accounts}
+          onOpenEmail={() => setTab("email")}
+        />
       </TabsContent>
       <TabsContent value="sessions">
         <SessionsPanel sessions={props.sessions} />

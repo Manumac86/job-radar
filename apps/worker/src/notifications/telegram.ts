@@ -3,6 +3,7 @@
 import { appTimeZone, isWithinWindow } from "@job-radar/core";
 import {
   getApplicationEmail,
+  getPortalApplication,
   getOffer,
   notificationsWithTelegramStatus,
   setTelegramStatus,
@@ -32,6 +33,9 @@ export const TELEGRAM_KINDS = new Set<Notification["kind"]>([
   "email_next_step",
   "email_offer",
   "email_rejection",
+  "portal_next_step",
+  "portal_offer",
+  "portal_rejection",
 ]);
 
 /** The email actions the bot's buttons call (MailService). */
@@ -41,13 +45,20 @@ export interface MailActions {
   dismiss(emailId: number): { ok: boolean; message: string };
 }
 
+/** "portal:<id>:<status>" dedupe keys carry the portal update id for the buttons. */
+export function portalUpdateIdOf(n: Pick<Notification, "dedupeKey">): number | null {
+  const m = /^portal:(\d+):/.exec(n.dedupeKey ?? "");
+  return m ? Number(m[1]) : null;
+}
+
 /** "email:<id>:<kind>" dedupe keys carry the email id for the buttons. */
 export function emailIdOf(n: Pick<Notification, "dedupeKey">): number | null {
   const m = /^email:(\d+):/.exec(n.dedupeKey ?? "");
   return m ? Number(m[1]) : null;
 }
 
-const CALLBACK = /^em:(undo|apply|dismiss):(\d+)$/;
+/** `em:` acts on an email update, `pa:` on a portal update (mygreenhouse-source D5). */
+const CALLBACK = /^(em|pa):(undo|apply|dismiss):(\d+)$/;
 /** Sent even during quiet hours. */
 const URGENT_KINDS = new Set<Notification["kind"]>(["interview_reminder"]);
 
@@ -69,6 +80,7 @@ export class TelegramService {
   private readonly owner: string;
   private polling = false;
   private mail: MailActions | null = null;
+  private portal: MailActions | null = null;
 
   constructor(private readonly o: TelegramOptions) {
     this.owner = String(o.ownerChatId).trim();
@@ -119,18 +131,23 @@ export class TelegramService {
     this.mail = mail;
   }
 
-  /** Undo / Apply / Dismiss from an email alert; idempotent through the email's status. */
+  setPortal(portal: MailActions): void {
+    this.portal = portal;
+  }
+
+  /** Undo / Apply / Dismiss from an email or portal alert; idempotent through the row's status. */
   async onEmailButton(ctx: Context): Promise<void> {
     const m = CALLBACK.exec(ctx.callbackQuery?.data ?? "");
-    if (!m || !this.mail) {
+    const target = m?.[1] === "pa" ? this.portal : this.mail;
+    if (!m || !target) {
       await ctx.answerCallbackQuery({ text: "Job Radar is not ready" });
       return;
     }
-    const action = m[1] as "undo" | "apply" | "dismiss";
-    const emailId = Number(m[2]);
+    const action = m[2] as "undo" | "apply" | "dismiss";
+    const rowId = Number(m[3]);
     let result: { ok: boolean; message: string };
     try {
-      result = this.mail[action](emailId);
+      result = target[action](rowId);
     } catch (err) {
       result = { ok: false, message: errorMessage(err) };
     }
@@ -147,6 +164,19 @@ export class TelegramService {
 
   /** Buttons for an email alert, from the email's current status. */
   keyboardFor(n: Notification): InlineKeyboard | undefined {
+    const portalId = portalUpdateIdOf(n);
+    if (portalId !== null) {
+      const row = getPortalApplication(this.o.db, portalId);
+      if (!row) return undefined;
+      const kb = new InlineKeyboard();
+      if (row.status === "auto_applied") kb.text("Undo", `pa:undo:${portalId}`);
+      else if (row.status === "suggested") {
+        const single = row.applicationId !== null || row.candidates.length === 1;
+        if (single && row.pending?.targetStage) kb.text("Apply", `pa:apply:${portalId}`);
+        kb.text("Dismiss", `pa:dismiss:${portalId}`);
+      } else return undefined;
+      return kb;
+    }
     const emailId = emailIdOf(n);
     if (emailId === null) return undefined;
     const email = getApplicationEmail(this.o.db, emailId);

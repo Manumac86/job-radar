@@ -1,0 +1,20 @@
+From: MyGreenhouse <no-reply@us.greenhouse-mail.io>
+To: owner@example.invalid
+Subject: New jobs matching your alert: AI Engineer
+Date: Sat, 21 Nov 2026 09:00:00 +0000
+Message-ID: <alert-gh-1@example.invalid>
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8
+
+<html><body><table>
+<tr><td>
+  <a href="https://job-boards.greenhouse.io/northwindlabs/jobs/7012345678?gh_src=alert">Staff AI Engineer</a>
+  <div>Northwind Labs</div>
+  <div>Remote - Europe</div>
+</td></tr>
+<tr><td>
+  <a href="https://job-boards.eu.greenhouse.io/contoso-ai/jobs/4401122?gh_src=alert">Engineering Manager, Platform</a>
+  <div>Remote, Spain</div>
+</td></tr>
+<tr><td><a href="https://my.greenhouse.io/settings/alerts">Manage alerts</a></td></tr>
+</table></body></html>

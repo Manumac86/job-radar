@@ -8,6 +8,7 @@ import {
 } from "@job-radar/core";
 import {
   addOfferLink,
+  findOfferByExternalId,
   findOfferBySourceExternalId,
   findRecentDuplicate,
   insertOffer,
@@ -40,7 +41,14 @@ export function ingestOffers(
   now = new Date(),
   log: (line: string) => void = () => {},
   /** Offers the owner added by hand skip the pre-filter: they chose them. */
-  options: { prefilter?: boolean } = {},
+  options: {
+    prefilter?: boolean;
+    /**
+     * The source shares external ids with another source (MyGreenhouse and the Greenhouse boards
+     * both use `<board>:<jobId>`): an offer known under that id from any source is only linked.
+     */
+    crossSourceIds?: boolean;
+  } = {},
 ): IngestCounts {
   const counts: IngestCounts = {
     found: raw.length,
@@ -69,6 +77,16 @@ export function ingestOffers(
       touchOffer(db, known.id, now);
       counts.updated++;
       continue;
+    }
+
+    // 1b. Same external id from another source sharing the id space (job-ingestion spec).
+    if (options.crossSourceIds) {
+      const other = findOfferByExternalId(db, o.externalId);
+      if (other) {
+        addOfferLink(db, other.id, { sourceId, externalId: o.externalId, url: o.sourceUrl });
+        counts.updated++;
+        continue;
+      }
     }
 
     // 2. Same company + normalized title within 14 days: link it to the existing offer.

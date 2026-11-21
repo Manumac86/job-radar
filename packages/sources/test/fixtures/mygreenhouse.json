@@ -1,0 +1,227 @@
+{
+  "_note": "Synthetic MyGreenhouse responses in the shape captured on 2026-11-21 (mygreenhouse-source task 1.1). Companies, jobs and ids are invented.",
+  "search": [
+    {
+      "url": "/jobs/search?query=AI%20Engineer",
+      "status": 200,
+      "body": {
+        "component": "jobs",
+        "props": {
+          "browsing": false,
+          "page": 1,
+          "moreResultsAvailable": true,
+          "jobPosts": [
+            {
+              "id": 4100000001,
+              "title": "AI Software Engineer ",
+              "companyName": "Contoso AI Team",
+              "logoUrl": null,
+              "publicUrl": "https://job-boards.greenhouse.io/contosoai/jobs/4100000001",
+              "urlToken": "contosoai",
+              "departmentId": 4000000001,
+              "viewJobPath": "/jobs/contosoai/4100000001",
+              "firstPublished": "2026-11-18T18:33:06Z",
+              "locations": ["Remote - Europe"],
+              "workType": "remote",
+              "payRanges": null,
+              "summary": null,
+              "description": null,
+              "viewed": false,
+              "viewedAt": null,
+              "appliedAt": null,
+              "saved": false
+            },
+            {
+              "id": 5000000002,
+              "title": "AI Solutions Engineer",
+              "companyName": "Fabrikam - AI for Industry",
+              "logoUrl": null,
+              "publicUrl": "https://job-boards.eu.greenhouse.io/fabrikam/jobs/5000000002",
+              "urlToken": "fabrikam",
+              "departmentId": null,
+              "viewJobPath": "/jobs/fabrikam/5000000002",
+              "firstPublished": "2026-11-12T05:25:34Z",
+              "locations": ["Lisbon", "Berlin"],
+              "workType": "hybrid",
+              "payRanges": null,
+              "summary": null,
+              "description": null,
+              "viewed": true,
+              "viewedAt": "2026-11-19T10:00:00Z",
+              "appliedAt": null,
+              "saved": false
+            },
+            {
+              "id": 6000000003,
+              "title": "Machine Learning Engineer",
+              "companyName": "Tailspin Labs",
+              "logoUrl": null,
+              "publicUrl": "https://job-boards.greenhouse.io/tailspin/jobs/6000000003",
+              "urlToken": "tailspin",
+              "departmentId": null,
+              "viewJobPath": "/jobs/tailspin/6000000003",
+              "firstPublished": "2026-11-20T16:54:33Z",
+              "locations": ["New York, NY"],
+              "workType": "in_person",
+              "payRanges": null,
+              "summary": null,
+              "description": null,
+              "viewed": false,
+              "viewedAt": null,
+              "appliedAt": null,
+              "saved": false
+            }
+          ],
+          "trackingData": {
+            "search_id": "00000000-0000-0000-0000-000000000000",
+            "user_id": 1,
+            "job_title": "AI Engineer",
+            "page": 1,
+            "more_available": true,
+            "num_on_page": 3
+          },
+          "recentSearches": []
+        },
+        "url": "/jobs/search?query=AI%20Engineer",
+        "version": "fixture"
+      }
+    }
+  ],
+  "dashboard": [
+    {
+      "url": "/recommendations",
+      "status": 200,
+      "body": {
+        "state": "ready",
+        "recommendations": [
+          {
+            "id": 4400000101,
+            "title": "Senior Software Engineer",
+            "viewed": false,
+            "logoUrl": null,
+            "urlToken": "woodgrove",
+            "workType": "remote",
+            "locations": ["Portugal", "Spain", "Germany"],
+            "payRanges": null,
+            "publicUrl": "https://job-boards.eu.greenhouse.io/woodgrove/jobs/4400000101",
+            "companyName": "Woodgrove Holdings",
+            "description": "Who we are\nWoodgrove builds investment software for family offices.\n\nWhat you will do\nDesign and ship TypeScript services.",
+            "viewJobPath": "/jobs/woodgrove/4400000101?from_recommendation=true",
+            "feedbackPath": "/recommended_jobs/4400000101/feedback",
+            "feedback": null,
+            "engine": "fixture_engine",
+            "interleavedWith": "fixture_v1",
+            "rank": 1,
+            "saved": false
+          },
+          {
+            "id": 4100000001,
+            "title": "AI Software Engineer ",
+            "viewed": false,
+            "logoUrl": null,
+            "urlToken": "contosoai",
+            "workType": "remote",
+            "locations": ["Remote - Europe"],
+            "payRanges": null,
+            "publicUrl": "https://job-boards.greenhouse.io/contosoai/jobs/4100000001",
+            "companyName": "Contoso AI Team",
+            "description": "Build agents for customer support.",
+            "viewJobPath": "/jobs/contosoai/4100000001?from_recommendation=true",
+            "feedbackPath": "/recommended_jobs/4100000001/feedback",
+            "feedback": null,
+            "engine": "fixture_engine",
+            "interleavedWith": "fixture_v1",
+            "rank": 2,
+            "saved": false
+          }
+        ]
+      }
+    },
+    { "url": "/tasks.json", "status": 200, "body": { "tasks": [] } }
+  ],
+  "applications": [
+    {
+      "url": "/applications.json?page=1&active_only=true",
+      "status": 200,
+      "body": {
+        "total_applications": 3,
+        "active": {
+          "applications": [
+            {
+              "id": 100000001,
+              "company_name": "Northwind Traders, Inc.",
+              "company_logo_url": null,
+              "job_post_url": "https://job-boards.greenhouse.io/northwind/jobs/4300000001",
+              "job_post_id": 4300000001,
+              "job_title": "Senior Software Engineer – Integrations ",
+              "locations": "Madrid Office",
+              "description": "<div><p>Northwind connects teams.</p></div>",
+              "applied_at": "2026-11-21T14:48:32+01:00",
+              "dream_job": false,
+              "dream_job_eligible": true,
+              "dreamJobPath": "/applications/100000001/dream_job",
+              "duplicate": false,
+              "inactive": false,
+              "sharingStatus": true,
+              "duplicate_of_application_id": null,
+              "stages": []
+            },
+            {
+              "id": 100000002,
+              "company_name": "Northwind Traders, Inc.",
+              "company_logo_url": null,
+              "job_post_url": "https://job-boards.greenhouse.io/northwind/jobs/4300000002",
+              "job_post_id": 4300000002,
+              "job_title": "Software Engineer, Integrations ",
+              "locations": "Madrid Office",
+              "description": "<div><p>Northwind connects teams.</p></div>",
+              "applied_at": "2026-11-21T14:48:00+01:00",
+              "dream_job": false,
+              "dream_job_eligible": true,
+              "dreamJobPath": "/applications/100000002/dream_job",
+              "duplicate": false,
+              "inactive": false,
+              "sharingStatus": true,
+              "duplicate_of_application_id": null,
+              "stages": [{ "name": "Technical Interview" }]
+            }
+          ],
+          "total_pages": 1,
+          "count": 2
+        }
+      }
+    },
+    {
+      "url": "/applications.json?page=1&inactive_only=true",
+      "status": 200,
+      "body": {
+        "total_applications": 3,
+        "inactive": {
+          "applications": [
+            {
+              "id": 100000003,
+              "company_name": "Litware",
+              "company_logo_url": null,
+              "job_post_url": "https://job-boards.eu.greenhouse.io/litware/jobs/4300000003",
+              "job_post_id": 4300000003,
+              "job_title": "Staff Engineer",
+              "locations": "Remote",
+              "description": "<div><p>Litware.</p></div>",
+              "applied_at": "2026-10-02T09:00:00+02:00",
+              "dream_job": false,
+              "dream_job_eligible": false,
+              "dreamJobPath": "/applications/100000003/dream_job",
+              "duplicate": false,
+              "inactive": true,
+              "sharingStatus": true,
+              "duplicate_of_application_id": null,
+              "stages": []
+            }
+          ],
+          "total_pages": 1,
+          "count": 1
+        }
+      }
+    }
+  ]
+}

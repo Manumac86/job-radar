@@ -18,14 +18,19 @@ import {
   SessionExpiredError,
   createPoliteFetcher,
   type BrowserAccess,
+  type MailConnector,
   type PoliteFetcher,
   type SourceAdapter,
+  type MyGreenhouseApplication,
+  MYGREENHOUSE_SOURCE_ID,
   SIMPLEAPPLY_SOURCE_ID,
 } from "@job-radar/sources";
 import { errorMessage, log, redact } from "../log";
 import type { Notifier } from "../notifier";
 import type { ProfileService } from "../profile-service";
+import { ingestMyGreenhouse } from "./mygreenhouse-import";
 import { ingestOffers } from "./pipeline";
+import type { PortalService } from "../portal/service";
 import { ingestSimpleApply, matchesFromOffers } from "./simpleapply-import";
 import { readSecretFile } from "../secrets";
 
@@ -40,6 +45,10 @@ export interface RunnerDeps {
   secretsDir?: string;
   /** Isolated browser profile for logged-in sources. */
   browser?: BrowserAccess;
+  /** The owner's email accounts, for the job-alert source (job-alert-mailboxes). */
+  mail?: MailConnector | undefined;
+  /** Candidate-portal application statuses (mygreenhouse-source). */
+  portal?: Pick<PortalService, "sync"> | undefined;
   adapters: Record<string, SourceAdapter>;
   fetcherFactory?: (onLog: (l: string) => void) => PoliteFetcher;
   llm?: { client: LlmClient; budget?: LlmBudget } | undefined;
@@ -69,6 +78,9 @@ export async function executeRun(
   if (!started) return { status: "already_running" };
 
   const lines: string[] = [];
+  // Partial failures (one account of several): the run succeeds and shows them as its error.
+  const partialErrors: string[] = [];
+  let portalApplications: MyGreenhouseApplication[] | null = null;
   const addLine = (l: string) => {
     if (lines.length < 300) lines.push(redact(l));
   };
@@ -90,6 +102,14 @@ export async function executeRun(
       log: addLine,
       dataDir: deps.dataDir,
       browser: deps.browser,
+      mail: deps.mail,
+      reportError: (message) => {
+        partialErrors.push(redact(message));
+        addLine(`error: ${redact(message)}`);
+      },
+      reportApplications: (apps) => {
+        portalApplications = apps;
+      },
       readSecret: (name) => (deps.secretsDir ? readSecretFile(deps.secretsDir, name) : null),
       now,
       llm: deps.llm
@@ -100,7 +120,11 @@ export async function executeRun(
     const counts =
       sourceId === SIMPLEAPPLY_SOURCE_ID
         ? ingestSimpleApply(deps.db, profile.preferences, matchesFromOffers(raw), now(), addLine)
-        : ingestOffers(deps.db, sourceId, raw, profile.preferences, now(), addLine);
+        : sourceId === MYGREENHOUSE_SOURCE_ID
+          ? ingestMyGreenhouse(deps.db, profile.preferences, raw, now(), addLine)
+          : ingestOffers(deps.db, sourceId, raw, profile.preferences, now(), addLine);
+    // Application statuses go through the email policy, after their jobs were stored (D4).
+    if (portalApplications && deps.portal) deps.portal.sync(sourceId, portalApplications, addLine);
     addLine(
       `found ${counts.found}, new ${counts.newCount}, filtered ${counts.filtered}, duplicates ${counts.duplicates}, already known ${counts.updated}${counts.invalid ? `, invalid ${counts.invalid}` : ""}`,
     );
@@ -110,6 +134,7 @@ export async function executeRun(
       newCount: counts.newCount,
       filtered: counts.filtered,
       duplicates: counts.duplicates,
+      ...(partialErrors.length ? { error: partialErrors.join("; ") } : {}),
       log: lines,
       at: now(),
     });

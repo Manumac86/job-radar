@@ -6,6 +6,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { closeDatabase, openDatabase } from "../src/client";
 import { migrationsDir } from "../src/paths";
 import {
+  alertAccounts,
+  alertReadFolders,
   createApplication,
   createMailAccount,
   deleteMailAccount,
@@ -50,8 +52,11 @@ describe("application-emails migration", () => {
     const journal = JSON.parse(readFileSync(journalFile, "utf8")) as {
       entries: { tag: string }[];
     };
-    const before = journal.entries.filter((e) => !e.tag.startsWith("0005_"));
-    expect(before.length).toBe(journal.entries.length - 1);
+    // Everything from 0005 on is applied by the upgrade.
+    const before = journal.entries.slice(
+      0,
+      journal.entries.findIndex((e) => e.tag.startsWith("0005_")),
+    );
     writeFileSync(journalFile, JSON.stringify({ ...journal, entries: before }));
     const path = join(dir, "radar.sqlite");
     const first = openDatabase({ path, migrate: false });
@@ -104,6 +109,85 @@ describe("mail accounts and cursors", () => {
     expect(getMailCursor(db, a.id, "INBOX")).toBeUndefined();
     deleteMailAccount(db, a.id);
     expect(listMailAccounts(db)).toEqual([]);
+  });
+});
+
+describe("job-alert mailboxes", () => {
+  it("upgrades a 0005 database: accounts and reply cursors are kept", () => {
+    const dir = mkdtempSync(join(tmpdir(), "job-radar-db-"));
+    dirs.push(dir);
+    const old = join(dir, "migrations");
+    cpSync(migrationsDir(), old, { recursive: true });
+    const journalFile = join(old, "meta", "_journal.json");
+    const journal = JSON.parse(readFileSync(journalFile, "utf8")) as {
+      entries: { tag: string }[];
+    };
+    const cut = journal.entries.findIndex((e) => e.tag.startsWith("0006_"));
+    writeFileSync(
+      journalFile,
+      JSON.stringify({ ...journal, entries: journal.entries.slice(0, cut) }),
+    );
+    const path = join(dir, "radar.sqlite");
+    const first = openDatabase({ path, migrate: false });
+    migrate(first, { migrationsFolder: old });
+    const id = Number(
+      first.$client
+        .prepare(
+          "insert into mail_accounts (label, address, host) values ('Personal', 'owner@example.invalid', 'imap.gmail.com')",
+        )
+        .run().lastInsertRowid,
+    );
+    first.$client
+      .prepare(
+        "insert into mail_cursors (account_id, folder, uid_validity, last_uid) values (?, 'INBOX', '7', 40)",
+      )
+      .run(id);
+    closeDatabase(first);
+
+    const db = openDatabase({ path });
+    expect(listMailAccounts(db)[0]).toMatchObject({
+      jobAlerts: false,
+      alertFolders: [],
+      alertsInInbox: false,
+    });
+    expect(getMailCursor(db, id, "INBOX")).toEqual({ uidValidity: "7", lastUid: 40 });
+    // A reply cursor and an alert cursor coexist for INBOX.
+    setMailCursor(db, id, "INBOX", { uidValidity: "7", lastUid: 12 }, new Date(), "alerts");
+    expect(getMailCursor(db, id, "INBOX", "alerts")).toEqual({ uidValidity: "7", lastUid: 12 });
+    expect(getMailCursor(db, id, "INBOX")).toEqual({ uidValidity: "7", lastUid: 40 });
+    closeDatabase(db);
+  });
+
+  it("stores alert settings, lists alert accounts and prunes only alert cursors", () => {
+    const db = memoryDb();
+    const a = createMailAccount(db, {
+      label: "Gmail",
+      address: "owner@example.invalid",
+      host: "imap.gmail.com",
+      jobAlerts: true,
+      alertFolders: [" job-alerts ", "job-alerts", ""],
+    });
+    createMailAccount(db, { label: "Off", address: "b@example.invalid", host: "imap.mail.me.com" });
+    expect(a.alertFolders).toEqual(["job-alerts"]);
+    expect(alertAccounts(db).map((x) => x.label)).toEqual(["Gmail"]);
+    expect(alertReadFolders({ alertFolders: ["job-alerts"], alertsInInbox: true })).toEqual([
+      "job-alerts",
+      "INBOX",
+    ]);
+    expect(alertReadFolders({ alertFolders: ["INBOX"], alertsInInbox: true })).toEqual(["INBOX"]);
+
+    setMailCursor(db, a.id, "INBOX", { uidValidity: "1", lastUid: 5 });
+    setMailCursor(db, a.id, "job-alerts", { uidValidity: "1", lastUid: 9 }, new Date(), "alerts");
+    setMailCursor(db, a.id, "Old", { uidValidity: "1", lastUid: 2 }, new Date(), "alerts");
+    updateMailAccount(db, a.id, { alertFolders: ["job-alerts"] });
+    expect(getMailCursor(db, a.id, "Old", "alerts")).toBeUndefined();
+    expect(getMailCursor(db, a.id, "job-alerts", "alerts")).toEqual({
+      uidValidity: "1",
+      lastUid: 9,
+    });
+    expect(getMailCursor(db, a.id, "INBOX")).toEqual({ uidValidity: "1", lastUid: 5 });
+    updateMailAccount(db, a.id, { enabled: false });
+    expect(alertAccounts(db)).toEqual([]);
   });
 });
 

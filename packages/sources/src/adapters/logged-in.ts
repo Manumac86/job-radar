@@ -11,10 +11,11 @@ import {
   isLoginWall,
   type SiteDefinition,
 } from "../browser/sessions";
-import type { SourceAdapter, SourceContext } from "../types";
+import type { SourceAdapter } from "../types";
 import { SITE_RULES, parseWithRule } from "./email";
+import { MYGREENHOUSE_SITE } from "./mygreenhouse";
 import { SIMPLEAPPLY_SITE } from "./simpleapply";
-import { inferEngagement, inferRemotePolicy, regionsFrom } from "../util";
+import { inferEngagement, inferRemotePolicy, regionsFrom, searchTerms } from "../util";
 
 interface LoggedInSite extends SiteDefinition {
   /** Search pages to read, built from the owner's keywords. */
@@ -323,16 +324,6 @@ export function parseWellfoundCards(
   return [...out.values()];
 }
 
-function searchTerms(ctx: SourceContext): string[] {
-  const custom = ctx.settings["queries"];
-  if (Array.isArray(custom) && custom.length) return custom.map(String);
-  // Role-like include keywords make the best searches.
-  const k = ctx.preferences.keywords.include.filter((w) =>
-    /engineer|cto|head|lead|manager|developer|ai|rag|next\.js/i.test(w),
-  );
-  return k.length ? k : ctx.preferences.keywords.include;
-}
-
 function adapterFor(site: LoggedInSite): SourceAdapter {
   return {
     type: site.id,
@@ -383,4 +374,5 @@ export const loggedInAdapters: SourceAdapter[] = Object.values(LOGGED_IN_SITES).
 export const SESSION_SITES: Record<string, SiteDefinition> = {
   ...LOGGED_IN_SITES,
   [SIMPLEAPPLY_SITE.id]: SIMPLEAPPLY_SITE,
+  [MYGREENHOUSE_SITE.id]: MYGREENHOUSE_SITE,
 };

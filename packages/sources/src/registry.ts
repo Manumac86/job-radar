@@ -5,6 +5,7 @@ import { emailAlertsAdapter } from "./adapters/email";
 import { hnHiringAdapter } from "./adapters/hn";
 import { ycombinatorAdapter } from "./adapters/ycombinator";
 import { loggedInAdapters } from "./adapters/logged-in";
+import { myGreenhouseAdapter } from "./adapters/mygreenhouse";
 import { simpleApplyAdapter } from "./adapters/simpleapply";
 import type { SourceAdapter } from "./types";
 
@@ -21,6 +22,7 @@ export const adapters: Record<string, SourceAdapter> = {
   ycombinator: ycombinatorAdapter,
   ...Object.fromEntries(loggedInAdapters.map((a) => [a.type, a])),
   simpleapply: simpleApplyAdapter,
+  mygreenhouse: myGreenhouseAdapter,
 };
 
 export function registerAdapter(adapter: SourceAdapter): void {

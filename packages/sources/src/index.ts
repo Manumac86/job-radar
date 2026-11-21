@@ -15,4 +15,5 @@ export * from "./import-url";
 export * from "./read-page";
 export * from "./csv";
 export * from "./adapters/simpleapply";
+export * from "./adapters/mygreenhouse";
 export * from "./mail/replies";

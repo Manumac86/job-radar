@@ -29,13 +29,52 @@ test("add, test, edit and remove an email account; the password is never shown",
     "placeholder",
     "Saved. Type a new one to replace it",
   );
-  await form.getByLabel("Folders").fill("INBOX, Jobs");
+  await form.getByLabel("Folders for replies").fill("INBOX, Jobs");
   await form.getByRole("button", { name: "Save account" }).click();
   await expect(
     card.getByText("owner@example.invalid · imap.gmail.com · INBOX, Jobs"),
   ).toBeVisible();
 
   await card.getByRole("button", { name: "Remove Personal" }).click();
+  await page.getByRole("button", { name: "Remove account" }).click();
+  await expect(card.getByText("No accounts yet.")).toBeVisible();
+});
+
+test("job alerts on an account: folders, summary and folder counts in the test", async ({
+  page,
+}) => {
+  await page.goto("/settings?tab=email");
+  const card = page.getByTestId("mail-accounts");
+  await card.getByRole("button", { name: "Add account" }).click();
+  const form = page.getByRole("form", { name: "Email account" });
+  await form.getByLabel("Name").fill("Alerts");
+  await form.getByLabel("Email address").fill("alerts@example.com");
+  await form.getByLabel("App password").fill("test-app-password");
+  await form.getByLabel("Read job alerts from this account").check();
+  await expect(form.getByText("Choose a folder or INBOX.")).toBeVisible();
+  await form.getByLabel("Alert folders or labels").fill("job-alerts, Missing");
+  await form.getByLabel(/Also look in INBOX/).check();
+  await form.getByRole("button", { name: "Save account" }).click();
+  await expect(
+    card.getByText("Job alerts: job-alerts, Missing, INBOX (alert senders only)"),
+  ).toBeVisible();
+
+  await card.getByRole("button", { name: "Test" }).click();
+  await expect(
+    page.getByText(
+      'Connected (read-only): 3 messages in INBOX; job alerts: 5 in job-alerts, "Missing" does not exist',
+    ),
+  ).toBeVisible();
+
+  // The Sources tab points here instead of holding a second mailbox setup.
+  await page.getByRole("tab", { name: "Sources" }).click();
+  const alerts = page.getByTestId("job-alert-emails");
+  await expect(alerts).toContainText("Reading job alerts from: Alerts.");
+  await expect(alerts.getByLabel("Mailbox address")).toHaveCount(0);
+  await alerts.getByRole("button", { name: "Settings → Email" }).click();
+  await expect(card).toBeVisible();
+
+  await card.getByRole("button", { name: "Remove Alerts" }).click();
   await page.getByRole("button", { name: "Remove account" }).click();
   await expect(card.getByText("No accounts yet.")).toBeVisible();
 });
@@ -89,7 +128,7 @@ test("an automatic update shows in the sheet and the timeline, and Undo reverts 
 
 test("a suggestion asks which application, then applies to the one picked", async ({ page }) => {
   await page.goto("/pipeline");
-  const strip = page.getByTestId("email-suggestions");
+  const strip = page.getByTestId("updates-to-review");
   const entry = strip.getByTestId("email-entry");
   await expect(entry).toContainText("Sends a take-home assignment due in a week.");
   await expect(entry).toContainText("Not applied: medium confidence");
@@ -98,7 +137,7 @@ test("a suggestion asks which application, then applies to the one picked", asyn
   await page.getByRole("option", { name: "Data Platform Engineer at Adatum" }).click();
   await entry.getByRole("button", { name: "Apply" }).click();
   await expect(page.locator("[data-sonner-toast]").filter({ hasText: "Applied" })).toBeVisible();
-  await expect(strip).toHaveCount(0);
+  await expect(strip.getByTestId("email-entry")).toHaveCount(0);
   await expect(
     page.getByTestId("column-take_home").getByRole("button", { name: /^Adatum/ }),
   ).toBeVisible();

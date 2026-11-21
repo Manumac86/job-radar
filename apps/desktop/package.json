@@ -1,6 +1,6 @@
 {
   "name": "@job-radar/desktop",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "Job Radar as a native macOS app (local build, unsigned, no auto-update)",

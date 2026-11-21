@@ -14,6 +14,7 @@ import {
   offers,
   stageTransitions,
   type EmailStatus,
+  type MailCursorPurpose,
 } from "../schema";
 
 export type MailAccount = typeof mailAccounts.$inferSelect;
@@ -27,6 +28,15 @@ export interface MailAccountInput {
   port?: number;
   folders?: string[];
   enabled?: boolean;
+  /** Job alerts (job-alert-mailboxes D1). */
+  jobAlerts?: boolean;
+  alertFolders?: string[];
+  alertsInInbox?: boolean;
+}
+
+/** Trimmed, de-duplicated folder names. */
+function cleanFolders(folders: string[]): string[] {
+  return [...new Set(folders.map((f) => f.trim()).filter(Boolean))];
 }
 
 // ---------- accounts ----------
@@ -49,6 +59,9 @@ export function createMailAccount(db: Db, input: MailAccountInput): MailAccount 
       port: input.port ?? 993,
       folders: input.folders?.length ? input.folders : ["INBOX"],
       enabled: input.enabled ?? true,
+      jobAlerts: input.jobAlerts ?? false,
+      alertFolders: cleanFolders(input.alertFolders ?? []),
+      alertsInInbox: input.alertsInInbox ?? false,
     })
     .returning()
     .get();
@@ -70,6 +83,7 @@ export function updateMailAccount(
     .set({
       ...patch,
       ...(patch.folders ? { folders: patch.folders.length ? patch.folders : ["INBOX"] } : {}),
+      ...(patch.alertFolders ? { alertFolders: cleanFolders(patch.alertFolders) } : {}),
       ...(moved ? { status: "new" as const, lastError: null } : {}),
       updatedAt: at,
     })
@@ -79,11 +93,30 @@ export function updateMailAccount(
   if (!row) throw new Error(`Mail account ${id} not found`);
   // Another mailbox (or other folders) means the old cursors no longer apply.
   if (moved) db.delete(mailCursors).where(eq(mailCursors.accountId, id)).run();
-  else if (patch.folders) {
-    const keep = row.folders;
-    db.delete(mailCursors)
-      .where(and(eq(mailCursors.accountId, id), notInArray(mailCursors.folder, keep)))
-      .run();
+  else {
+    if (patch.folders) {
+      db.delete(mailCursors)
+        .where(
+          and(
+            eq(mailCursors.accountId, id),
+            eq(mailCursors.purpose, "replies"),
+            notInArray(mailCursors.folder, row.folders),
+          ),
+        )
+        .run();
+    }
+    if (patch.alertFolders || patch.alertsInInbox !== undefined) {
+      const keep = alertReadFolders(row);
+      db.delete(mailCursors)
+        .where(
+          and(
+            eq(mailCursors.accountId, id),
+            eq(mailCursors.purpose, "alerts"),
+            ...(keep.length ? [notInArray(mailCursors.folder, keep)] : []),
+          ),
+        )
+        .run();
+    }
   }
   return row;
 }
@@ -109,6 +142,18 @@ export function setMailAccountStatus(
     .run();
 }
 
+/** Folders the job-alert reader opens for an account: its alert folders, then INBOX if asked. */
+export function alertReadFolders(a: Pick<MailAccount, "alertFolders" | "alertsInInbox">): string[] {
+  const folders = cleanFolders(a.alertFolders);
+  if (a.alertsInInbox && !folders.some((f) => f.toUpperCase() === "INBOX")) folders.push("INBOX");
+  return folders;
+}
+
+/** Enabled accounts with job alerts on (job-alert-mailboxes D1). */
+export function alertAccounts(db: Db): MailAccount[] {
+  return listMailAccounts(db).filter((a) => a.enabled && a.jobAlerts);
+}
+
 /** The owner's own addresses: mail sent from them is never a reply. */
 export function ownAddresses(db: Db): string[] {
   return listMailAccounts(db).map((a) => a.address.toLowerCase());
@@ -121,11 +166,22 @@ export interface MailCursor {
   lastUid: number;
 }
 
-export function getMailCursor(db: Db, accountId: number, folder: string): MailCursor | undefined {
+export function getMailCursor(
+  db: Db,
+  accountId: number,
+  folder: string,
+  purpose: MailCursorPurpose = "replies",
+): MailCursor | undefined {
   const row = db
     .select()
     .from(mailCursors)
-    .where(and(eq(mailCursors.accountId, accountId), eq(mailCursors.folder, folder)))
+    .where(
+      and(
+        eq(mailCursors.accountId, accountId),
+        eq(mailCursors.folder, folder),
+        eq(mailCursors.purpose, purpose),
+      ),
+    )
     .get();
   return row ? { uidValidity: row.uidValidity, lastUid: row.lastUid } : undefined;
 }
@@ -136,11 +192,12 @@ export function setMailCursor(
   folder: string,
   cursor: MailCursor,
   at = new Date(),
+  purpose: MailCursorPurpose = "replies",
 ): void {
   db.insert(mailCursors)
-    .values({ accountId, folder, ...cursor, updatedAt: at })
+    .values({ accountId, folder, purpose, ...cursor, updatedAt: at })
     .onConflictDoUpdate({
-      target: [mailCursors.accountId, mailCursors.folder],
+      target: [mailCursors.accountId, mailCursors.folder, mailCursors.purpose],
       set: { ...cursor, updatedAt: at },
     })
     .run();

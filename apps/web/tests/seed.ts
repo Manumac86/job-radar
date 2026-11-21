@@ -4,6 +4,9 @@ import {
   createApplication,
   createDraft,
   insertApplicationEmail,
+  insertPortalApplication,
+  transitionForPortal,
+  updatePortalApplication,
   moveStage,
   transitionForEmail,
   updateApplicationEmail,
@@ -240,6 +243,86 @@ insertApplicationEmail(db, {
     },
   },
 });
+
+// MyGreenhouse statuses (mygreenhouse-source): one automatic rejection, one suggestion.
+const fourth = upsertCompany(db, { name: "Fourth Coffee", normalizedName: "fourth coffee" });
+const [moved, inactive] = ["Backend Engineer", "Integrations Engineer"].map((title, i) => {
+  const offer = insertOffer(db, {
+    sourceId: "ashby",
+    externalId: `fourthcoffee:43000000${i}`,
+    sourceUrl: `https://job-boards.greenhouse.io/fourthcoffee/jobs/43000000${i}`,
+    title,
+    normalizedTitle: title.toLowerCase(),
+    companyId: fourth.id,
+    companyName: "Fourth Coffee",
+    remotePolicy: "remote",
+    engagementType: "full-time",
+    description: `${title} at Fourth Coffee.`,
+  });
+  return createApplication(db, { offerId: offer.id, at: new Date(Date.now() - 4 * 86_400_000) });
+}) as [ReturnType<typeof createApplication>, ReturnType<typeof createApplication>];
+const seen = new Date(Date.now() - 2 * 3_600_000);
+const rejectedRow = insertPortalApplication(db, {
+  source: "mygreenhouse",
+  portalId: "200000001",
+  jobKey: "fourthcoffee:430000000",
+  company: "Fourth Coffee",
+  title: "Backend Engineer",
+  url: "https://job-boards.greenhouse.io/fourthcoffee/jobs/430000000",
+  applicationId: moved.id,
+  lastStatus: "Rejected",
+  statusSeenAt: seen,
+  category: "rejection",
+  status: "auto_applied",
+  pending: { targetStage: "rejected", reasons: [] },
+});
+moveStage(db, moved.id, "rejected", {
+  note: "From MyGreenhouse",
+  source: "greenhouse",
+  portalApplicationId: rejectedRow.id,
+});
+updatePortalApplication(db, rejectedRow.id, {
+  undo: {
+    previousStage: "applied",
+    targetStage: "rejected",
+    transitionId: transitionForPortal(db, rejectedRow.id)?.id ?? null,
+    previousNextStep: null,
+    nextStepId: null,
+    nextStep: null,
+    interviewId: null,
+    interviewScheduledAt: null,
+    previousFirstResponseAt: null,
+  },
+});
+const inactiveRow = insertPortalApplication(db, {
+  source: "mygreenhouse",
+  portalId: "200000002",
+  jobKey: "fourthcoffee:430000001",
+  company: "Fourth Coffee",
+  title: "Integrations Engineer",
+  url: "https://job-boards.greenhouse.io/fourthcoffee/jobs/430000001",
+  applicationId: inactive.id,
+  lastStatus: "inactive",
+  statusSeenAt: seen,
+  category: "closed",
+  status: "suggested",
+  pending: {
+    targetStage: "rejected",
+    reasons: ["Greenhouse only says the application is inactive: rejected, or the job closed"],
+  },
+});
+for (const [app, row, suffix] of [
+  [moved, rejectedRow, ""],
+  [inactive, inactiveRow, " (suggestion)"],
+] as const)
+  addTimelineEvent(db, {
+    offerId: app.offerId,
+    applicationId: app.id,
+    kind: "portal_status",
+    message: `MyGreenhouse: ${row.lastStatus}${suffix}`,
+    data: { portalApplicationId: row.id, status: row.status },
+    at: seen,
+  });
 
 db.$client.close();
 console.log(`Seeded UI test data in ${dataDir}`);

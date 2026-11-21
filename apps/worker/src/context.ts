@@ -6,6 +6,7 @@ import type { Notifier } from "./notifier";
 import type { PrepService } from "./pipeline/prep";
 import type { LearningService } from "./learning/service";
 import type { MailService } from "./mail/service";
+import type { PortalService } from "./portal/service";
 import type { ResearchService } from "./research/service";
 import type { ProfileService } from "./profile-service";
 import type { ScoringService } from "./scoring/service";
@@ -23,6 +24,7 @@ export interface WorkerContext {
   prep?: PrepService;
   learning?: LearningService;
   mail?: MailService;
+  portal?: PortalService;
   research?: ResearchService;
   telegram?: TelegramService | null;
   browser?: BrowserSessions;
