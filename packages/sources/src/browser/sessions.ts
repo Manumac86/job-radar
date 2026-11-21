@@ -33,6 +33,27 @@ export class SessionExpiredError extends Error {
   }
 }
 
+/** The site answered with a bot check instead of the page. Job Radar never tries to get past it. */
+export class BotCheckError extends Error {
+  override readonly name = "BotCheckError";
+  constructor(readonly site: string) {
+    super(
+      `${site} answered with a bot check (Cloudflare) instead of the page. Job Radar does not get past bot checks: use this site's email alerts instead, or disable the source.`,
+    );
+  }
+}
+
+/** A Cloudflare challenge or block page ("Just a moment...", "Attention Required!"). */
+export function isBotCheck(html: string): boolean {
+  const title = /<title[^>]*>([^<]*)<\/title>/i.exec(html)?.[1]?.trim() ?? "";
+  return (
+    /^just a moment|^attention required|^access denied/i.test(title) ||
+    /cf-browser-verification|Performing security verification|Sorry, you have been blocked/i.test(
+      html.length < 200_000 ? html : "",
+    )
+  );
+}
+
 /** A login wall: a login URL, or a page whose main form asks for a password. */
 export function isLoginWall(site: SiteDefinition, url: string, html: string): boolean {
   if (site.loginUrlPattern.test(url)) return true;

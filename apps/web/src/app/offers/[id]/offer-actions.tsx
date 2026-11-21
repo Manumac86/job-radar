@@ -34,6 +34,13 @@ interface DraftRef {
   id: number;
   version: number;
   message: string;
+  /** CV variant the draft was written for, if any. */
+  cvVariant?: string | null;
+}
+
+export interface CvOption {
+  id: string;
+  name: string;
 }
 
 const NONE = "none";
@@ -45,6 +52,8 @@ export function OfferActions({
   triage,
   hasApplication,
   drafts,
+  cvOptions = [],
+  recommendedCv = null,
 }: {
   offerId: number;
   companyName: string;
@@ -52,11 +61,23 @@ export function OfferActions({
   triage: string;
   hasApplication: boolean;
   drafts: DraftRef[];
+  /** Master CV first, then the variants; empty when the owner has no variants. */
+  cvOptions?: CvOption[];
+  recommendedCv?: string | null;
 }) {
   const [pending, start] = useTransition();
   const [dismissOpen, setDismissOpen] = useState(false);
   const [appliedOpen, setAppliedOpen] = useState(false);
   const [draftChoice, setDraftChoice] = useState(drafts[0] ? String(drafts[0].id) : NONE);
+  // Pre-select the CV sent: the chosen draft's variant, else the recommendation, else master.
+  const suggestedCv = (choice: string) => {
+    const fromDraft = drafts.find((d) => String(d.id) === choice)?.cvVariant;
+    const ids = cvOptions.map((o) => o.id);
+    if (fromDraft && ids.includes(fromDraft)) return fromDraft;
+    if (recommendedCv && ids.includes(recommendedCv)) return recommendedCv;
+    return "master";
+  };
+  const [cvChoice, setCvChoice] = useState(() => suggestedCv(draftChoice));
 
   const run = (fn: () => Promise<ActionResult>, after?: () => void) =>
     start(async () => {
@@ -152,7 +173,13 @@ export function OfferActions({
             </DialogDescription>
           </DialogHeader>
           <Label>Draft version you sent</Label>
-          <Select value={draftChoice} onValueChange={setDraftChoice}>
+          <Select
+            value={draftChoice}
+            onValueChange={(v) => {
+              setDraftChoice(v);
+              setCvChoice(suggestedCv(v));
+            }}
+          >
             <SelectTrigger aria-label="Draft version you sent">
               <SelectValue />
             </SelectTrigger>
@@ -165,6 +192,24 @@ export function OfferActions({
               <SelectItem value={NONE}>No draft / wrote my own</SelectItem>
             </SelectContent>
           </Select>
+          {cvOptions.length > 1 ? (
+            <>
+              <Label>CV you sent</Label>
+              <Select value={cvChoice} onValueChange={setCvChoice}>
+                <SelectTrigger aria-label="CV you sent">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {cvOptions.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.name}
+                      {o.id === recommendedCv ? " (recommended)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </>
+          ) : null}
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAppliedOpen(false)}>
               Cancel
@@ -173,7 +218,12 @@ export function OfferActions({
               disabled={pending}
               onClick={() =>
                 run(
-                  () => markApplied(offerId, draftChoice === NONE ? null : Number(draftChoice)),
+                  () =>
+                    markApplied(
+                      offerId,
+                      draftChoice === NONE ? null : Number(draftChoice),
+                      cvOptions.length > 1 ? cvChoice : null,
+                    ),
                   () => setAppliedOpen(false),
                 )
               }

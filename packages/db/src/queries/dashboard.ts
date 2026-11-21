@@ -233,7 +233,8 @@ function applySpeed(postedAt: Date | null, appliedAt: Date): string {
 
 /**
  * Which applications get answers (application-pipeline spec, "Response patterns"): response
- * and interview rates by source, engagement type, score band, application speed and draft use.
+ * and interview rates by source, engagement type, score band, application speed, draft use
+ * and CV sent.
  * Uses every application, or only those created since `since`.
  */
 export function responsePatterns(db: Db, opts: { since?: Date } = {}): ResponsePatterns {
@@ -243,6 +244,7 @@ export function responsePatterns(db: Db, opts: { since?: Date } = {}): ResponseP
       appliedAt: applications.appliedAt,
       firstResponseAt: applications.firstResponseAt,
       sentDraftId: applications.sentDraftId,
+      cvVariantName: applications.cvVariantName,
       sourceId: offers.sourceId,
       engagementType: offers.engagementType,
       score: offers.score,
@@ -275,6 +277,7 @@ export function responsePatterns(db: Db, opts: { since?: Date } = {}): ResponseP
       label: "Draft",
       of: (a) => (a.sentDraftId ? "Sent a Job Radar draft" : "Own message"),
     },
+    { key: "cv", label: "CV sent", of: (a) => a.cvVariantName ?? "Unknown" },
   ];
   return {
     total: apps.length,

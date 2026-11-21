@@ -1,5 +1,26 @@
 import { expect, test } from "@playwright/test";
 
+test("source metadata: a long company URL is a wrapping link, labels are readable", async ({
+  page,
+}) => {
+  await page.goto("/offers");
+  await page.getByRole("link", { name: "Contract AI Engineer" }).click();
+  const details = page.getByTestId("offer-details");
+  await expect(details.getByText("Imported via")).toBeVisible();
+  await expect(details.getByText("Seniority level")).toBeVisible();
+  const link = details.getByRole("link", {
+    name: "es.linkedin.com/company/northwind-consulting-and-engineering-services",
+  });
+  await expect(link).toHaveAttribute(
+    "href",
+    "https://es.linkedin.com/company/northwind-consulting-and-engineering-services",
+  );
+  // The link stays inside the card instead of running into the next column.
+  const card = await details.boundingBox();
+  const box = await link.boundingBox();
+  expect(box!.x + box!.width).toBeLessThanOrEqual(card!.x + card!.width);
+});
+
 test("'Mark as applied' creates an application with the sent draft", async ({ page }) => {
   await page.goto("/offers");
   await page.getByRole("link", { name: "Contract AI Engineer" }).click();

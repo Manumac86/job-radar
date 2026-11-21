@@ -1,6 +1,7 @@
 import {
   LlmCapReachedError,
   LlmUnavailableError,
+  MASTER_CV_ID,
   draftApplication,
   type CompanyProfile,
   type LlmBudget,
@@ -43,7 +44,14 @@ export class DraftService {
     },
   ) {}
 
-  async generate(offerId: number, options: { instruction?: string | null } = {}): Promise<Draft> {
+  /**
+   * `cvVariantId`: the CV version to write for; defaults to the offer's recommended variant.
+   * "master" (or no variants) writes for the master CV.
+   */
+  async generate(
+    offerId: number,
+    options: { instruction?: string | null; cvVariantId?: string | null } = {},
+  ): Promise<Draft> {
     return this.queue.add(async () => {
       const { db } = this.deps;
       const offer = getOffer(db, offerId);
@@ -53,6 +61,13 @@ export class DraftService {
       const previous = latestDraft(db, offerId);
       const score = scoreHistory(db, offerId)[0];
       const research = offer.companyId ? currentCompanyResearch(db, offer.companyId) : undefined;
+      const wanted = options.cvVariantId ?? score?.recommendedCv ?? null;
+      const variant =
+        wanted && wanted !== MASTER_CV_ID
+          ? (profile.variants ?? []).find((v) => v.id === wanted)
+          : undefined;
+      if (options.cvVariantId && options.cvVariantId !== MASTER_CV_ID && !variant)
+        throw new DraftError(`No CV variant "${options.cvVariantId}"`, 400);
       try {
         const res = await draftApplication(
           { client: this.deps.client, budget: this.deps.budget },
@@ -69,6 +84,7 @@ export class DraftService {
                     researchedAt: research.finishedAt,
                   }
                 : null,
+            cvVariant: variant ?? null,
           },
         );
         return createDraft(db, {
@@ -79,6 +95,8 @@ export class DraftService {
           verifyBeforeSending: res.draft.verify_before_sending,
           companyFactsUsed: res.draft.company_facts_used,
           instruction: options.instruction ?? null,
+          cvVariant: variant?.id ?? ((profile.variants ?? []).length ? MASTER_CV_ID : null),
+          cvVariantName: variant?.name ?? ((profile.variants ?? []).length ? "Master CV" : null),
           model: res.model,
         });
       } catch (err) {

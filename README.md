@@ -20,15 +20,15 @@ pipeline.
 
 ## What it does
 
-|                          |                                                                                                                                                                                                                                                                                                                     |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Collects offers**      | Public sources out of the box: Greenhouse, Lever and Ashby boards of the companies you pick, Y Combinator, Hacker News "Who is hiring", RemoteOK and We Work Remotely. Optional: job-alert emails (LinkedIn, Upwork, Malt, Wellfound) read-only over IMAP, and logged-in sites through an isolated browser profile. |
-| **Scores them**          | A keyword pre-filter, then Claude scores each offer against your CV and preferences (role, seniority, stack, rate, location, contract) with a short explanation and red flags.                                                                                                                                      |
-| **Researches companies** | Funding, headcount, tech stack, news and red flags, every fact linked to the page it came from.                                                                                                                                                                                                                     |
-| **Drafts applications**  | Cover messages and proposals grounded only in facts from your CV, with a suggested rate. You copy, edit and send.                                                                                                                                                                                                   |
-| **Learns from you**      | When you dismiss an offer you say why. Job Radar turns those reasons into plain-language preferences that you can see and edit, and similar offers score lower.                                                                                                                                                     |
-| **Tracks the pipeline**  | A board from Applied to Offer, with interview prep, follow-up reminders and "what gets responses" stats.                                                                                                                                                                                                            |
-| **Notifies you**         | Telegram alerts for strong matches, quiet hours and a daily digest.                                                                                                                                                                                                                                                 |
+|                          |                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Collects offers**      | Public sources out of the box: Greenhouse, Lever and Ashby boards of the companies you pick, Y Combinator, Hacker News "Who is hiring", RemoteOK, We Work Remotely and Darwin Recruitment (a STEM recruiter's public job feed). Optional: job-alert emails (LinkedIn, Upwork, Malt, Wellfound) read-only over IMAP, SimpleApply match exports (CSV), and logged-in sites through an isolated browser profile. |
+| **Scores them**          | A keyword pre-filter, then Claude scores each offer against your CV and preferences (role, seniority, stack, rate, location, contract) with a short explanation and red flags.                                                                                                                                                                                                                                |
+| **Researches companies** | Funding, headcount, tech stack, news and red flags, every fact linked to the page it came from.                                                                                                                                                                                                                                                                                                               |
+| **Drafts applications**  | Cover messages and proposals grounded only in facts from your CV, with a suggested rate. You copy, edit and send.                                                                                                                                                                                                                                                                                             |
+| **Learns from you**      | When you dismiss an offer you say why. Job Radar turns those reasons into plain-language preferences that you can see and edit, and similar offers score lower.                                                                                                                                                                                                                                               |
+| **Tracks the pipeline**  | A board from Applied to Offer, with interview prep, follow-up reminders and "what gets responses" stats. Replies in your mailboxes (rejections, interview invitations, take-homes, offers) update it on their own, with Undo.                                                                                                                                                                                 |
+| **Notifies you**         | Telegram alerts for strong matches, replies with next steps, offers and rejections (with Undo), quiet hours and a daily digest.                                                                                                                                                                                                                                                                               |
 
 ![Offers list](docs/images/offers.png)
 
@@ -88,9 +88,20 @@ docker compose up -d --build   # or `pnpm dev` to run natively (web 3000, worker
 
 1. **Your profile.** Job Radar starts with a fictional example profile (Alex Rivera), and says so
    on the dashboard until you replace it. In **Settings → Profile files**, paste your CV in
-   Markdown and edit `preferences.yaml`: target roles, skills, minimum rates, capacity, keywords,
-   regions and time zone. The **General** tab has the common fields as a form. Every change is
-   validated, so an invalid file is never saved.
+   Markdown. In **Settings → Preferences**, set target roles, skills, minimum rates, capacity,
+   keywords, regions and time zone, either in the form or in the raw `preferences.yaml` (switch
+   with **Form | YAML**). Saving from the form changes only the fields you edited and keeps your
+   comments. Every change is validated, so an invalid file is never saved.
+
+   **CV variants (optional).** If you keep several versions of your CV (say AI engineer and tech
+   lead), add them under **Settings → Profile files → CV variants**. Scoring still judges your
+   fit against the full CV, so variants never change a score. The same scoring call also
+   recommends which variant to send for each offer, and lists what the offer asks for that this
+   variant does not show. Drafts lead with the chosen variant, but every fact still comes from the
+   full CV. **Mark as applied** records which CV you sent, and the dashboard compares response
+   rates by CV. After you change your variants, **Refresh CV recommendations** rescores your
+   shortlisted offers within the daily cap.
+
 2. **Companies.** `companies.yaml` lists companies polled on their public Greenhouse, Lever and
    Ashby boards. The example list is a set of AI and developer-tool companies; make it yours.
 3. **Sources.** Open **Sources**, enable a few, and click **Run now**. New offers are
@@ -117,7 +128,7 @@ Docker, it is `secrets/` next to the compose file.
 
 Programmatic use counts against your plan's allowance. That is why offers go through a keyword
 pre-filter first, scoring uses Haiku, and there are daily caps (default 300 scoring calls, 30
-drafts and 10 company researches; change them in **Settings → General**). Caps reset at midnight
+drafts and 10 company researches; change them in **Settings → Preferences**). Caps reset at midnight
 in your time zone: the Mac's zone in the app, and `TZ` with Docker (`JOB_RADAR_TIMEZONE`
 overrides both).
 
@@ -127,7 +138,10 @@ overrides both).
 
 - **Offers.** Filter by score, source and status, open an offer to read the score breakdown, the
   company card and the draft. **Shortlist**, **Dismiss** (with a reason) or **Mark as applied**.
-  To track an offer you applied to elsewhere, use **Add from link**.
+  To track an offer you applied to elsewhere, use **Import → From a link**. If you use
+  [SimpleApply](https://simpleapply.ai), click **Export CSV** there and use **Import → SimpleApply
+  CSV**: its matches are de-duplicated, filtered and scored like any other offer, and the ones it
+  applied to appear in the pipeline. The file is read locally.
 - **Pipeline.** Drag applications through the stages. Moving one to an interview stage creates
   an interview prep plan: likely questions, strengths from your CV, gaps and questions to ask.
   Applications with no news get a follow-up reminder after the days you set (default 7).
@@ -142,9 +156,41 @@ overrides both).
   private addresses refused. A fact without a page that was actually read is discarded. Profiles
   are reused for 30 days.
 
+### Email replies (optional)
+
+Job Radar can read the replies to your applications and keep the pipeline current.
+
+1. Go to **Settings → Email** and add each mailbox you use: Gmail, iCloud (including a custom
+   domain hosted on iCloud) or any IMAP server. Each one needs an **app password**:
+   - Gmail: [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+     (2-step verification must be on).
+   - iCloud: account.apple.com → Sign-In and Security → App-Specific Passwords.
+   - Microsoft accounts that only allow OAuth sign-in are not supported.
+
+   The password goes to `secrets/mail/` and is never shown again. Press **Test** to check it.
+
+2. Every 15 minutes (set in **Preferences → Notifications**), or with **Check now**, each
+   mailbox is opened **read-only**. Nothing is marked as read, moved, deleted or answered.
+3. **What leaves your Mac.** Only emails whose sender is the company you applied to, or a hiring
+   platform (Greenhouse, Lever, Ashby, LinkedIn…) that names it, are sent to Claude. Each one
+   goes as untrusted data with your open applications at that company. Everything else stays on
+   your Mac, and only sender, subject, date, a one-line summary and a short excerpt are kept.
+4. **What changes.**
+   - When the reply is clear, the application moves forward (screening call, technical,
+     take-home, final interview, offer received) or to Rejected. The next step and the interview
+     time are filled in.
+   - An email never accepts, declines or withdraws, never moves an application backwards and
+     never reopens a closed one.
+   - Anything unclear becomes a suggestion in **Pipeline → From email**, for you to apply or
+     dismiss.
+   - Every automatic change has **Undo**, in the app and on the Telegram alert, and each email has
+     **Open in Mail**.
+
+Classifying a reply counts against the daily scoring cap.
+
 ### Logged-in sites (optional, opt-in)
 
-Malt, Wellfound, Mercor, Upwork and LinkedIn can be read with your own account. They are off by
+Malt, Wellfound, Mercor, Upwork, LinkedIn and SimpleApply can be read with your own account. They are off by
 default, and enabling one shows a risk notice.
 
 1. Go to **Settings → Sessions → Log in**.
@@ -156,7 +202,9 @@ default, and enabling one shows a risk notice.
 
 **Risks:** Upwork and LinkedIn restrict automated access and may limit your account even for
 read-only browsing. Job Radar reads at most 20 pages per site per hour, with 5–20 s pauses. For
-those two sites, the job-alert email source carries no risk and is the recommended path.
+those two sites, the job-alert email source carries no risk and is the recommended path. SimpleApply
+only has its match list read (never Simple Apply, Mark as Applied, Not Interested or Full Auto
+Apply); its CSV import carries no risk at all.
 
 ### Backups
 

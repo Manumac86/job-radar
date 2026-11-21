@@ -13,6 +13,12 @@ export function scoringRoutes(ctx: WorkerContext): Router {
       return void res.status(409).json({ error: "Profile is invalid; fix it first" });
     res.status(202).json({ queued: ctx.scoring.rescoreOpen() });
   });
+  r.post("/scoring/refresh-cv", (_req, res) => {
+    if (!ctx.scoring) return void res.status(503).json({ error: "Scoring is not running" });
+    if (!ctx.profile.get())
+      return void res.status(409).json({ error: "Profile is invalid; fix it first" });
+    res.status(202).json({ queued: ctx.scoring.refreshCvRecommendations() });
+  });
   r.post("/offers/:id/score", (req, res) => {
     if (!ctx.scoring) return void res.status(503).json({ error: "Scoring is not running" });
     const id = Number(req.params.id);

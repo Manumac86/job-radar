@@ -1,5 +1,7 @@
 import { FakeLlmClient, LlmBudget, type ModelDraft, type ModelScore } from "@job-radar/core";
 import { listDrafts, llmUsageStore, offerTimeline, upsertSource } from "@job-radar/db";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
@@ -108,5 +110,50 @@ describe("drafts API", () => {
     expect(capped.body.error).toMatch(/Daily drafting cap of 2/);
     await request(s.app).post("/offers/9999/drafts").send({}).expect(404);
     await request(s.app).post(`/offers/${s.offerId}/drafts`).send({ instruction: 5 }).expect(400);
+  });
+});
+
+describe("drafts and CV variants", () => {
+  it("writes for the recommended variant by default, or the one picked, and records it", async () => {
+    const s = setup([
+      { ...score(70), cv: { recommended: "tech-lead", reason: "Lead role.", gaps: [] } },
+      draft("Hi team, I led the frontend of an agentic RAG platform."),
+      draft("Hi team, I built retrieval-augmented assistants."),
+    ]);
+    mkdirSync(join(s.profile.dir, "cvs"), { recursive: true });
+    for (const [id, name] of [
+      ["tech-lead", "Tech Lead"],
+      ["ai-engineer", "AI Engineer"],
+    ])
+      writeFileSync(
+        join(s.profile.dir, "cvs", `${id}.md`),
+        `---\nname: ${name}\nuse_for: x\n---\n${name} evidence.\n`,
+      );
+    s.profile.reload();
+    s.scoring.enqueue([s.offerId]);
+    await s.scoring.idle();
+
+    const first = await s.drafts.generate(s.offerId);
+    expect(first).toMatchObject({ cvVariant: "tech-lead", cvVariantName: "Tech Lead" });
+    expect(s.client.requests.at(-1)!.prompt).toContain('the "Tech Lead" version');
+
+    const app = createApp({ db: s.db, profile: s.profile, drafts: s.drafts });
+    const res = await request(app)
+      .post(`/offers/${s.offerId}/drafts`)
+      .send({ cvVariantId: "ai-engineer" })
+      .expect(201);
+    expect(res.body).toMatchObject({
+      version: 2,
+      cvVariant: "ai-engineer",
+      cvVariantName: "AI Engineer",
+    });
+    expect(listDrafts(s.db, s.offerId).map((d) => d.cvVariant)).toEqual([
+      "ai-engineer",
+      "tech-lead",
+    ]);
+    await request(app)
+      .post(`/offers/${s.offerId}/drafts`)
+      .send({ cvVariantId: "nope" })
+      .expect(400);
   });
 });

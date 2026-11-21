@@ -5,6 +5,7 @@ import type { Scheduler } from "./ingest/scheduler";
 import type { Notifier } from "./notifier";
 import type { PrepService } from "./pipeline/prep";
 import type { LearningService } from "./learning/service";
+import type { MailService } from "./mail/service";
 import type { ResearchService } from "./research/service";
 import type { ProfileService } from "./profile-service";
 import type { ScoringService } from "./scoring/service";
@@ -21,6 +22,7 @@ export interface WorkerContext {
   drafts?: DraftService;
   prep?: PrepService;
   learning?: LearningService;
+  mail?: MailService;
   research?: ResearchService;
   telegram?: TelegramService | null;
   browser?: BrowserSessions;

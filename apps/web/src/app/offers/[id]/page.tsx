@@ -8,16 +8,20 @@ import {
   nextStepFor,
   offerLinksFor,
   offerTimeline,
+  emailsForApplication,
+  pendingEmailSuggestions,
   scoreHistory,
 } from "@job-radar/db";
-import { AlertTriangle, ExternalLink } from "lucide-react";
+import { AlertTriangle, ExternalLink, FileText } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ScoreBadge } from "@/components/score-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmailEntry } from "@/components/email-entry";
 import { db } from "@/lib/db";
+import { toEmailView } from "@/lib/emails";
 import {
   ENGAGEMENT_LABELS,
   formatDate,
@@ -25,6 +29,7 @@ import {
   REMOTE_LABELS,
   TRIAGE_LABELS,
 } from "@/lib/format";
+import { cvName, cvOptions } from "@/lib/profile";
 import { companyCardData } from "@/lib/research";
 import { CompanyCard } from "./company-card";
 import { DraftsPanel } from "./drafts-panel";
@@ -39,9 +44,50 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
+    <div className="min-w-0">
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="text-sm">{children || "—"}</dd>
+      <dd className="text-sm [overflow-wrap:anywhere]">{children || "—"}</dd>
+    </div>
+  );
+}
+
+/** Readable labels for source metadata keys; others are humanized ("seniority_level" → "Seniority level"). */
+const META_LABELS: Record<string, string> = {
+  via: "Imported via",
+  linkedin: "Company on LinkedIn",
+};
+
+function metaLabel(key: string): string {
+  const label = META_LABELS[key] ?? key.replace(/_/g, " ");
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function httpUrl(value: unknown): URL | null {
+  if (typeof value !== "string" || !/^https?:\/\//i.test(value)) return null;
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+}
+
+/** One source metadata entry: links get a full row and a short, wrapping label. */
+function MetaField({ name, value }: { name: string; value: unknown }) {
+  const url = httpUrl(value);
+  if (!url) return <Field label={metaLabel(name)}>{String(value)}</Field>;
+  const text = `${url.hostname.replace(/^www\./, "")}${url.pathname.replace(/\/$/, "")}`;
+  return (
+    <div className="col-span-2">
+      <Field label={metaLabel(name)}>
+        <a
+          href={url.href}
+          target="_blank"
+          rel="noreferrer"
+          className="underline underline-offset-2 hover:text-foreground"
+        >
+          {text}
+        </a>
+      </Field>
     </div>
   );
 }
@@ -72,12 +118,27 @@ export default async function OfferPage({ params }: { params: Params }) {
   const links = offerLinksFor(d, offerId);
   const timeline = offerTimeline(d, offerId).reverse();
   const application = getApplicationForOffer(d, offerId);
+  const suggestionCandidates = new Map(
+    pendingEmailSuggestions(d).map((s) => [s.email.id, s.candidates]),
+  );
+  const emailsById = new Map(
+    (application ? emailsForApplication(d, application.id) : []).map((e) => [
+      e.id,
+      toEmailView(e, suggestionCandidates.get(e.id)),
+    ]),
+  );
   const dismissal = offer.triage === "dismissed" ? currentDismissal(d, offerId) : undefined;
   const stages = listStages(d);
   const interviews = application ? interviewsFor(d, application.id) : [];
   const nextStep = application ? nextStepFor(d, application.id) : undefined;
   const meta = offer.companyMeta;
+  const simpleApplyMatch = simpleApplyMatchOf(offer.raw);
   const company = companyCardData(offer);
+  const cvChoices = cvOptions();
+  const recommendedCv =
+    current?.recommendedCv && cvChoices.some((o) => o.id === current.recommendedCv)
+      ? current.recommendedCv
+      : null;
 
   return (
     <div className="space-y-6">
@@ -131,7 +192,14 @@ export default async function OfferPage({ params }: { params: Params }) {
           sourceUrl={offer.applyUrl ?? offer.sourceUrl}
           triage={offer.triage}
           hasApplication={Boolean(application)}
-          drafts={drafts.map((dr) => ({ id: dr.id, version: dr.version, message: dr.message }))}
+          drafts={drafts.map((dr) => ({
+            id: dr.id,
+            version: dr.version,
+            message: dr.message,
+            cvVariant: dr.cvVariant,
+          }))}
+          cvOptions={cvChoices}
+          recommendedCv={recommendedCv}
         />
       </div>
 
@@ -152,6 +220,30 @@ export default async function OfferPage({ params }: { params: Params }) {
                     <SubScore label="Location" value={current.locationFit} />
                     <SubScore label="Engagement" value={current.engagementFit} />
                   </div>
+                  {current.recommendedCv ? (
+                    <div
+                      className="rounded-md border bg-muted/40 p-3 text-sm"
+                      data-testid="cv-recommendation"
+                    >
+                      <p className="flex items-center gap-1.5 font-medium">
+                        <FileText className="size-4" aria-hidden />
+                        Recommended CV: {cvName(current.recommendedCv)}
+                      </p>
+                      {current.cvReason ? (
+                        <p className="mt-1 text-muted-foreground">{current.cvReason}</p>
+                      ) : null}
+                      {current.cvGaps?.length ? (
+                        <div className="mt-2">
+                          <p className="text-xs font-medium">May be missing from this CV:</p>
+                          <ul className="mt-1 list-disc pl-5 text-xs text-muted-foreground">
+                            {current.cvGaps.map((g) => (
+                              <li key={g}>{g}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                   {current.redFlags.length ? (
                     <ul className="space-y-1">
                       {current.redFlags.map((f) => (
@@ -211,7 +303,10 @@ export default async function OfferPage({ params }: { params: Params }) {
               instruction: dr.instruction,
               model: dr.model,
               createdAt: formatDate(dr.createdAt, true),
+              cvVariantName: dr.cvVariantName,
             }))}
+            cvOptions={cvChoices}
+            recommendedCv={recommendedCv}
           />
 
           <Card>
@@ -232,7 +327,7 @@ export default async function OfferPage({ params }: { params: Params }) {
               <CardTitle>Details</CardTitle>
             </CardHeader>
             <CardContent>
-              <dl className="grid grid-cols-2 gap-3">
+              <dl className="grid grid-cols-2 gap-3" data-testid="offer-details">
                 <Field label="Rate">{formatRate(offer)}</Field>
                 <Field label="Engagement">{ENGAGEMENT_LABELS[offer.engagementType]}</Field>
                 <Field label="Remote">{REMOTE_LABELS[offer.remotePolicy]}</Field>
@@ -248,6 +343,11 @@ export default async function OfferPage({ params }: { params: Params }) {
                   </Field>
                 ) : null}
                 <Field label="Apply via">{offer.applyMethod}</Field>
+                {simpleApplyMatch !== null ? (
+                  <Field label="SimpleApply match">
+                    {simpleApplyMatch}% (not used in the score)
+                  </Field>
+                ) : null}
                 {offer.skills.length ? (
                   <div className="col-span-2">
                     <Field label="Skills">{offer.skills.join(", ")}</Field>
@@ -256,9 +356,7 @@ export default async function OfferPage({ params }: { params: Params }) {
                 {Object.entries(meta)
                   .filter(([, v]) => v !== null && v !== undefined && v !== "")
                   .map(([k, v]) => (
-                    <Field key={k} label={k.replace(/_/g, " ")}>
-                      {String(v)}
-                    </Field>
+                    <MetaField key={k} name={k} value={v} />
                   ))}
               </dl>
             </CardContent>
@@ -330,14 +428,24 @@ export default async function OfferPage({ params }: { params: Params }) {
             </CardHeader>
             <CardContent>
               <ol className="space-y-2 text-sm" data-testid="timeline">
-                {timeline.map((e) => (
-                  <li key={e.id}>
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {formatDate(e.at, true)}
-                    </span>
-                    <div>{e.message}</div>
-                  </li>
-                ))}
+                {timeline.map((e) => {
+                  const email =
+                    e.kind === "email" ? emailsById.get(Number(e.data["emailId"])) : undefined;
+                  const fromEmail = e.kind === "stage_changed" && e.data["source"] === "email";
+                  return (
+                    <li key={e.id}>
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {formatDate(e.at, true)}
+                        {fromEmail ? " · from email" : ""}
+                      </span>
+                      {email ? (
+                        <EmailEntry email={email} />
+                      ) : (
+                        <div className="[overflow-wrap:anywhere]">{e.message}</div>
+                      )}
+                    </li>
+                  );
+                })}
               </ol>
             </CardContent>
           </Card>
@@ -345,4 +453,11 @@ export default async function OfferPage({ params }: { params: Params }) {
       </div>
     </div>
   );
+}
+
+/** SimpleApply's own match %, kept as metadata only (simpleapply-source spec). */
+function simpleApplyMatchOf(raw: unknown): number | null {
+  if (!raw || typeof raw !== "object") return null;
+  const v = (raw as Record<string, unknown>)["simpleapplyMatch"];
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
 }

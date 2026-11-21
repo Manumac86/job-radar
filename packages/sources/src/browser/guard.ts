@@ -1,11 +1,11 @@
 // Read-only browsing guard (design D4, browser-sessions spec). Adapters receive a ReadOnlyPage,
 // never a Playwright Page. This file is the only place in packages/sources allowed to call
 // interaction methods, and only for pagination / "show more".
-import type { Locator, Page } from "playwright";
+import type { Locator, Page, Response } from "playwright";
 
 /** Labels that must never be clicked, in any language we expect on these sites. */
 export const FORBIDDEN_LABELS =
-  /\b(apply|applying|submit|send|connect|follow|message|contact|bid|propose|proposal|hire|invite|accept|save job|easy apply|postular|enviar|solicitar|aplicar|conectar|seguir|mensaje|contactar|postuler|envoyer|candidater|bewerben|senden)\b/i;
+  /\b(apply|applying|applied|unlock|upgrade|not interested|hide|auto apply|submit|send|connect|follow|message|contact|bid|propose|proposal|hire|invite|accept|save job|easy apply|postular|enviar|solicitar|aplicar|conectar|seguir|mensaje|contactar|postuler|envoyer|candidater|bewerben|senden)\b/i;
 
 /** The only things safeClick may click. */
 export const ALLOWED_LABELS =
@@ -72,7 +72,21 @@ export interface ReadOnlyPage {
   scroll(): Promise<void>;
   /** Pagination / "show more" only. Throws ForbiddenActionError for anything else. */
   safeClick(selector: string): Promise<void>;
+  /**
+   * JSON responses the page itself received from its own origin since the last goto, whose path
+   * matches. Only the URL path and query, the status and the parsed body are exposed: never
+   * request or response headers, cookies or tokens (browser-sessions spec). Adapters cannot send
+   * requests of their own.
+   */
+  jsonResponses(pathPattern: RegExp): Promise<CapturedResponse[]>;
   readonly pagesViewed: number;
+}
+
+export interface CapturedResponse {
+  /** Path and query only, e.g. `/api/jobs?page=1`. */
+  url: string;
+  status: number;
+  body: unknown;
 }
 
 async function labelOf(locator: Locator): Promise<string> {
@@ -106,11 +120,31 @@ export function readOnlyPage(page: Page, o: ReadOnlyOptions): ReadOnlyPage {
   const min = Math.max(5000, delay.min);
   const max = Math.max(min, delay.max);
   const pause = () => sleep(min + Math.random() * (max - min));
+  let captured: { path: string; url: string; status: number; body: Promise<unknown> }[] = [];
+  page.on("response", (response: Response) => {
+    let target: URL;
+    let current: URL;
+    try {
+      target = new URL(response.url());
+      current = new URL(page.url());
+    } catch {
+      return;
+    }
+    if (target.origin !== current.origin) return;
+    if (!/\bjson\b/i.test(response.headers()["content-type"] ?? "")) return;
+    captured.push({
+      path: target.pathname,
+      url: target.pathname + target.search,
+      status: response.status(),
+      body: response.json().catch(() => null),
+    });
+  });
   return {
     async goto(url) {
       o.budget.take(o.site);
       if (viewed > 0) await pause();
       viewed++;
+      captured = [];
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45_000 });
       o.log?.(`viewed ${new URL(url).pathname}`);
     },
@@ -134,6 +168,12 @@ export function readOnlyPage(page: Page, o: ReadOnlyOptions): ReadOnlyPage {
       viewed++;
       // The single allowed interaction call in packages/sources (see eslint.config.js).
       await target.click({ timeout: 10_000 });
+    },
+    async jsonResponses(pathPattern) {
+      const matching = captured.filter((c) => pathPattern.test(c.path));
+      return Promise.all(
+        matching.map(async (c) => ({ url: c.url, status: c.status, body: await c.body })),
+      );
     },
     get pagesViewed() {
       return viewed;

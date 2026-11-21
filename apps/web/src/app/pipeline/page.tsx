@@ -2,6 +2,8 @@ import { capacityStatus, isInterviewStage } from "@job-radar/core/pipeline";
 import {
   boardApplications,
   committedWeeklyHours,
+  emailsForApplication,
+  pendingEmailSuggestions,
   latestInterviewPreps,
   listStages,
   NO_RESPONSE_DAYS,
@@ -10,8 +12,11 @@ import { AlertTriangle } from "lucide-react";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmailEntry } from "@/components/email-entry";
 import { db } from "@/lib/db";
-import { readPreferences } from "@/lib/profile";
+import { toEmailView, type EmailView } from "@/lib/emails";
+import { cvOptions, readPreferences } from "@/lib/profile";
 import { Board, type CardData } from "./board";
 
 export const metadata: Metadata = { title: "Pipeline" };
@@ -22,6 +27,7 @@ function toCards(
   at: Date,
   preps: ReturnType<typeof latestInterviewPreps>,
   labels: Map<string, string>,
+  emailsOf: (applicationId: number) => EmailView[],
 ): CardData[] {
   const now = at.getTime();
   return rows.map(({ application, offer, nextStep, interviews, engagement }) => ({
@@ -64,6 +70,10 @@ function toCards(
           active: engagement.active,
         }
       : null,
+    cv: application.cvVariant
+      ? { id: application.cvVariant, name: application.cvVariantName ?? application.cvVariant }
+      : null,
+    emails: emailsOf(application.id),
     canPrepare: isInterviewStage(application.stage, labels.get(application.stage) ?? ""),
     prep: (() => {
       const p = preps.get(application.id);
@@ -84,7 +94,13 @@ export default function PipelinePage() {
   const stages = listStages(d);
   const rows = boardApplications(d);
   const labels = new Map(stages.map((s) => [s.key, s.label]));
-  const cards = toCards(rows, new Date(), latestInterviewPreps(d), labels);
+  const suggestions = pendingEmailSuggestions(d);
+  const candidatesOf = new Map(suggestions.map((s) => [s.email.id, s.candidates]));
+  const cards = toCards(rows, new Date(), latestInterviewPreps(d), labels, (id) =>
+    emailsForApplication(d, id)
+      .filter((e) => e.status !== "queued")
+      .map((e) => toEmailView(e, candidatesOf.get(e.id))),
+  );
   const { prefs } = readPreferences();
   const capacity = prefs
     ? capacityStatus(committedWeeklyHours(d), prefs.engagement.weekly_capacity_hours)
@@ -105,9 +121,26 @@ export default function PipelinePage() {
           </AlertDescription>
         </Alert>
       ) : null}
+      {suggestions.length ? (
+        <Card className="mb-4" data-testid="email-suggestions">
+          <CardHeader>
+            <CardTitle>From email</CardTitle>
+            <CardDescription>
+              Replies Job Radar was not sure about. Apply one to update its application, or dismiss
+              it.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-2 md:grid-cols-2">
+            {suggestions.map((s) => (
+              <EmailEntry key={s.email.id} email={toEmailView(s.email, s.candidates)} />
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
       <Board
         stages={stages.map((s) => ({ key: s.key, label: s.label, isClosing: s.isClosing }))}
         cards={cards}
+        cvOptions={cvOptions()}
       />
     </>
   );

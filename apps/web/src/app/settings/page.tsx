@@ -1,13 +1,19 @@
-import { appTimeZone } from "@job-radar/core/time";
-import { readProfileFiles } from "@job-radar/core/profile";
-import { getSource, listSources, listStages } from "@job-radar/db";
+import { loadVariants, readProfileFiles } from "@job-radar/core/profile";
+import { getSource, listSources, listStages, staleCvRecommendationCount } from "@job-radar/db";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
 import { db } from "@/lib/db";
 import { learningData } from "@/lib/learning";
 import { ExampleProfileNotice } from "@/components/example-profile-notice";
-import { profileDir, readPreferences, usingExampleProfile } from "@/lib/profile";
+import {
+  preferencesHash,
+  profileDir,
+  readPreferences,
+  usingExampleProfile,
+  withoutSources,
+} from "@/lib/profile";
 import { workerFetch } from "@/lib/worker";
+import type { MailAccountView } from "./mail-accounts-card";
 import { SettingsTabs } from "./settings-tabs";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -24,15 +30,27 @@ interface ScoringStatus {
   budget: { scoring: { used: number; cap: number }; drafts: { used: number; cap: number } };
 }
 
-const TABS = ["general", "learning", "profile", "sources", "sessions", "stages", "status"];
+const TABS = [
+  "preferences",
+  "general",
+  "learning",
+  "profile",
+  "email",
+  "sources",
+  "sessions",
+  "stages",
+  "status",
+];
 
 export default async function SettingsPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const tab = (await searchParams)["tab"];
-  const initialTab = typeof tab === "string" && TABS.includes(tab) ? tab : "general";
+  const params = await searchParams;
+  const tab = params["tab"];
+  const view = params["view"];
+  const initialTab = typeof tab === "string" && TABS.includes(tab) ? tab : "preferences";
   const d = db();
   let files = { cv: "", preferences: "" };
   try {
@@ -41,10 +59,12 @@ export default async function SettingsPage({
     // Files missing: the worker seeds them on start; the editors start empty.
   }
   const { prefs, errors } = readPreferences();
-  const [profileStatus, scoring, telegram] = await Promise.all([
+  const cvVariants = loadVariants(profileDir());
+  const [profileStatus, scoring, telegram, mailAccounts] = await Promise.all([
     workerFetch<ProfileStatus>("/profile/status"),
     workerFetch<ScoringStatus>("/scoring/status"),
     workerFetch<{ configured: boolean; howTo?: string[] }>("/telegram/status"),
+    workerFetch<MailAccountView[]>("/mail/accounts"),
   ]);
   const email = getSource(d, "email_alerts");
   const es = email?.settings ?? {};
@@ -56,34 +76,22 @@ export default async function SettingsPage({
       <ExampleProfileNotice show={usingExampleProfile()} />
       <SettingsTabs
         initialTab={initialTab}
-        timeZone={appTimeZone()}
         cv={files.cv}
-        preferences={files.preferences}
         validationErrors={errors}
-        excludedCompanies={prefs?.keywords.exclude_companies ?? []}
-        form={
-          prefs
-            ? {
-                strong: prefs.scoring.thresholds.strong,
-                possible: prefs.scoring.thresholds.possible,
-                scoringModel: prefs.scoring.models.scoring,
-                draftingModel: prefs.scoring.models.drafting,
-                scoringCap: prefs.scoring.daily_caps.scoring,
-                draftsCap: prefs.scoring.daily_caps.drafts,
-                researchCap: prefs.scoring.daily_caps.research,
-                autoResearch: prefs.research.auto_strong,
-                quietStart: prefs.notifications.quiet_hours.start,
-                quietEnd: prefs.notifications.quiet_hours.end,
-                digestTime: prefs.notifications.digest_time,
-                minEUR: prefs.rates.min_hourly["EUR"] ?? 0,
-                minUSD: prefs.rates.min_hourly["USD"] ?? 0,
-                minGBP: prefs.rates.min_hourly["GBP"] ?? 0,
-                minDailyEUR: prefs.rates.min_daily_eur,
-                capacity: prefs.engagement.weekly_capacity_hours,
-                followUpDays: prefs.notifications.follow_up_days.join(", "),
-              }
-            : null
-        }
+        cvVariants={{
+          variants: cvVariants.variants,
+          errors: cvVariants.errors,
+          staleCount: cvVariants.variants.length
+            ? staleCvRecommendationCount(d, cvVariants.hash)
+            : 0,
+        }}
+        preferencesPanel={{
+          initialView: view === "yaml" ? "yaml" : "form",
+          text: files.preferences,
+          hash: preferencesHash(files.preferences),
+          values: prefs ? withoutSources(prefs) : null,
+          errors,
+        }}
         status={{
           worker: profileStatus.ok,
           profile: profileStatus.ok ? profileStatus.data : null,
@@ -97,6 +105,11 @@ export default async function SettingsPage({
           host: typeof es["host"] === "string" ? es["host"] : "imap.gmail.com",
           port: typeof es["port"] === "number" ? es["port"] : 993,
           lookbackDays: typeof es["lookback_days"] === "number" ? es["lookback_days"] : 3,
+        }}
+        mail={{
+          accounts: mailAccounts.ok ? mailAccounts.data : [],
+          workerRunning: mailAccounts.ok,
+          checkMinutes: prefs?.mail.check_minutes ?? 15,
         }}
         learning={learningData()}
         stages={listStages(d).map((s) => ({ key: s.key, label: s.label, custom: s.custom }))}

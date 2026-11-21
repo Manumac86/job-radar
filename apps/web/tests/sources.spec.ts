@@ -38,6 +38,20 @@ test("logged-in sources require the risk notice before enabling", async ({ page 
   await expect(upwork.getByRole("checkbox")).not.toBeChecked();
 });
 
+test("SimpleApply asks for the risk notice and recommends the CSV import", async ({ page }) => {
+  await page.goto("/sources");
+  const card = page.getByTestId("source-simpleapply");
+  await expect(card).toContainText("Logged-in · read-only");
+  await card.getByRole("checkbox", { name: "Enable SimpleApply (logged-in)" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText(
+    "never applies, marks applied, hides a job or touches Full Auto Apply",
+  );
+  await expect(dialog).toContainText("Offers → Import → SimpleApply CSV");
+  await dialog.getByRole("button", { name: "Keep disabled" }).click();
+  await expect(card.getByRole("checkbox")).not.toBeChecked();
+});
+
 test("notifications: strong-match alerts appear in the app and can be marked read", async ({
   page,
 }) => {

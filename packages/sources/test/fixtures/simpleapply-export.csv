@@ -1,0 +1,10 @@
+Date Posted,Date Applied,Status,Match Percentage,Job Title,Company,Location,Workplace Type,Job URL,Requirements Summary
+2026-11-18,,,95%,"Senior Software Engineer, Payments",Woodgrove,United States,Remote,https://job-boards.greenhouse.io/woodgrove/jobs/123?gh_jid=123&utm_source=simpleapply,"Overview:
+Build payment services.
+
+Requirements:
+* 5+ years of ""backend"" work, TypeScript"
+2026-11-16,2026-11-17,Applied,90%,Staff Engineer,Fabrikam,Europe or Spain,Remote,https://jobs.ashbyhq.com/fabrikam/abc-def/,Lead the platform team.
+2026-11-15,,,75%,Platform Engineer,Northwind,"London, United Kingdom",Hybrid,https://northwind.wd5.myworkdayjobs.com/en-US/careers/job/London/Platform-Engineer_R123,Kubernetes and Go.
+2026-11-14,,,80%,,Missing Title Inc,Remote,Remote,https://example.com/jobs/1,No title.
+2026-11-14,,,80%,Bad Link Engineer,Acme,Remote,Remote,mailto:jobs@acme.test,Not http.

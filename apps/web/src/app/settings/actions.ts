@@ -1,6 +1,12 @@
 "use server";
 
-import { readProfileFiles, saveProfileFiles, setPreferenceValues } from "@job-radar/core/profile";
+import {
+  applyPreferenceChanges,
+  readProfileFiles,
+  saveProfileFiles,
+  type PreferenceChange,
+  type PreferenceFieldError,
+} from "@job-radar/core/profile";
 import {
   addCustomStage,
   getSource,
@@ -10,13 +16,9 @@ import {
 } from "@job-radar/db";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import {
-  applyExclusionsNow,
-  cleanCompanyList,
-  preferencesWithCompanies,
-} from "@/lib/company-exclusions";
+import { applyExclusionsNow, cleanCompanyList } from "@/lib/company-exclusions";
 import { db } from "@/lib/db";
-import { profileDir } from "@/lib/profile";
+import { preferencesHash, profileDir, withoutSources, type PreferenceValues } from "@/lib/profile";
 import { workerFetch } from "@/lib/worker";
 
 export type ActionResult =
@@ -39,111 +41,131 @@ export async function saveProfileText(files: {
   return { ok: true, message: `Saved${note}` };
 }
 
-const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "use HH:MM");
-const formSchema = z
-  .object({
-    strong: z.coerce.number().int().min(1).max(100),
-    possible: z.coerce.number().int().min(0).max(99),
-    scoringModel: z.string().trim().min(1),
-    draftingModel: z.string().trim().min(1),
-    scoringCap: z.coerce.number().int().min(0).max(5000),
-    draftsCap: z.coerce.number().int().min(0).max(500),
-    researchCap: z.coerce.number().int().min(0).max(100),
-    /** Checkbox: "on" when checked, absent when not. */
-    autoResearch: z
-      .union([z.literal("on"), z.boolean()])
-      .optional()
-      .transform((v) => v === "on" || v === true),
-    quietStart: time,
-    quietEnd: time,
-    digestTime: time,
-    minEUR: z.coerce.number().positive(),
-    minUSD: z.coerce.number().positive(),
-    minGBP: z.coerce.number().positive(),
-    minDailyEUR: z.coerce.number().positive(),
-    capacity: z.coerce.number().int().min(1).max(80),
-    followUpDays: z
-      .string()
-      .trim()
-      .transform((v) =>
-        v
-          ? v
-              .split(/[\s,;]+/)
-              .filter(Boolean)
-              .map(Number)
-          : [],
-      )
-      .pipe(
-        z
-          .array(z.number().int("whole days").min(1, "at least 1 day").max(90, "at most 90 days"))
-          .max(5, "at most 5 reminders"),
-      ),
-  })
-  .refine((f) => f.possible < f.strong, {
-    message: "possible must be lower than strong",
-    path: ["possible"],
-  });
+const MAX_CHANGES = 200;
+const changeSchema = z.union([
+  z.object({
+    path: z
+      .array(z.union([z.string(), z.number()]))
+      .min(1)
+      .max(6),
+    delete: z.literal(true),
+  }),
+  z.object({
+    path: z
+      .array(z.union([z.string(), z.number()]))
+      .min(1)
+      .max(6),
+    value: z.unknown(),
+  }),
+]);
 
-export type SettingsForm = z.input<typeof formSchema>;
-
-/** Initial values shown in the form. */
-export interface SettingsValues {
-  strong: number;
-  possible: number;
-  scoringModel: string;
-  draftingModel: string;
-  scoringCap: number;
-  draftsCap: number;
-  researchCap: number;
-  autoResearch: boolean;
-  quietStart: string;
-  quietEnd: string;
-  digestTime: string;
-  minEUR: number;
-  minUSD: number;
-  minGBP: number;
-  minDailyEUR: number;
-  capacity: number;
-  /** Comma-separated, e.g. "7, 14". */
-  followUpDays: string;
+/** Fields whose change alters scores; the others (notifications, research, caps) do not. */
+function affectsScoring(path: (string | number)[]): boolean {
+  const [top, second] = path.map(String);
+  if (top === "notifications" || top === "research") return false;
+  return !(top === "scoring" && second === "daily_caps");
 }
 
-/** Writes individual values into preferences.yaml, keeping its comments and layout. */
-export async function saveSettings(form: SettingsForm): Promise<ActionResult> {
-  const parsed = formSchema.safeParse(form);
-  if (!parsed.success) {
+export type PreferencesSaveResult =
+  | {
+      ok: true;
+      message: string;
+      hash: string;
+      text: string;
+      values: PreferenceValues;
+      rescoreSuggested: boolean;
+    }
+  | { ok: false; error: string; errors?: string[]; fieldErrors?: PreferenceFieldError[] };
+
+const STALE = "The preferences file changed since you opened it. Reload the page to see it.";
+
+/**
+ * Applies the form's changed fields to preferences.yaml as targeted edits (comments and
+ * untouched lines stay as they are). Refuses when the file changed since it was loaded.
+ */
+export async function savePreferences(input: {
+  changes: PreferenceChange[];
+  baseHash: string;
+}): Promise<PreferencesSaveResult> {
+  const changes = z.array(changeSchema).max(MAX_CHANGES).safeParse(input.changes);
+  if (!changes.success) return { ok: false, error: "Not saved: malformed changes" };
+  const { preferences } = readProfileFiles(profileDir());
+  if (preferencesHash(preferences) !== input.baseHash) return { ok: false, error: STALE };
+  if (changes.data.some((c) => String(c.path[0]) === "sources"))
+    return { ok: false, error: "Per-source settings are edited in the YAML view" };
+  const cleaned = (changes.data as PreferenceChange[]).map((c) =>
+    c.path.join(".") === "keywords.exclude_companies" && "value" in c && Array.isArray(c.value)
+      ? { ...c, value: cleanCompanyList(c.value.map(String)) }
+      : c,
+  );
+  const r = applyPreferenceChanges(preferences, cleaned);
+  if (!r.ok)
     return {
       ok: false,
-      error: "Not saved",
-      errors: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`),
+      error: "Not saved: fix these fields first",
+      errors: r.errors,
+      fieldErrors: r.fieldErrors,
     };
+  const saved = await saveProfileText({ preferences: r.text });
+  if (!saved.ok) return saved;
+  let message = saved.message ?? "Saved";
+  if (changes.data.some((c) => c.path.join(".") === "keywords.exclude_companies")) {
+    const { hidden, restored } = applyExclusionsNow(r.value.keywords.exclude_companies);
+    message += `: ${hidden} offers hidden, ${restored} restored`;
+    revalidatePath("/offers");
+    revalidatePath("/");
   }
-  const f = parsed.data;
+  return {
+    ok: true,
+    message,
+    hash: preferencesHash(r.text),
+    text: r.text,
+    values: withoutSources(r.value),
+    rescoreSuggested: changes.data.some((c) => affectsScoring(c.path)),
+  };
+}
+
+/** Checks YAML text without saving (used before switching to the form). */
+export async function validatePreferencesYaml(
+  text: string,
+): Promise<{ ok: true } | { ok: false; errors: string[] }> {
+  if (typeof text !== "string" || text.length > 200_000) return { ok: false, errors: ["Too long"] };
+  const r = applyPreferenceChanges(text, []);
+  return r.ok ? { ok: true } : { ok: false, errors: r.errors };
+}
+
+/** Saves the whole YAML text after validation, refusing when the file changed elsewhere. */
+export async function savePreferencesYaml(input: {
+  text: string;
+  baseHash: string;
+}): Promise<PreferencesSaveResult> {
+  if (typeof input.text !== "string" || input.text.length > 200_000)
+    return { ok: false, error: "Too long" };
   const { preferences } = readProfileFiles(profileDir());
-  const updated = setPreferenceValues(preferences, [
-    { path: ["scoring", "thresholds", "strong"], value: f.strong },
-    { path: ["scoring", "thresholds", "possible"], value: f.possible },
-    { path: ["scoring", "models", "scoring"], value: f.scoringModel },
-    { path: ["scoring", "models", "drafting"], value: f.draftingModel },
-    { path: ["scoring", "daily_caps", "scoring"], value: f.scoringCap },
-    { path: ["scoring", "daily_caps", "drafts"], value: f.draftsCap },
-    { path: ["scoring", "daily_caps", "research"], value: f.researchCap },
-    { path: ["research", "auto_strong"], value: f.autoResearch },
-    { path: ["notifications", "quiet_hours", "start"], value: f.quietStart },
-    { path: ["notifications", "quiet_hours", "end"], value: f.quietEnd },
-    { path: ["notifications", "digest_time"], value: f.digestTime },
-    { path: ["rates", "min_hourly", "EUR"], value: f.minEUR },
-    { path: ["rates", "min_hourly", "USD"], value: f.minUSD },
-    { path: ["rates", "min_hourly", "GBP"], value: f.minGBP },
-    { path: ["rates", "min_daily_eur"], value: f.minDailyEUR },
-    { path: ["engagement", "weekly_capacity_hours"], value: f.capacity },
-    {
-      path: ["notifications", "follow_up_days"],
-      value: [...new Set(f.followUpDays)].sort((a, b) => a - b),
-    },
-  ]);
-  if (!updated.ok) return { ok: false, error: "Not saved", errors: updated.errors };
-  return saveProfileText({ preferences: updated.text });
+  if (preferencesHash(preferences) !== input.baseHash) return { ok: false, error: STALE };
+  const r = applyPreferenceChanges(input.text, []);
+  if (!r.ok)
+    return {
+      ok: false,
+      error: "Not saved: fix these fields first",
+      errors: r.errors,
+      fieldErrors: r.fieldErrors,
+    };
+  const saved = await saveProfileText({ preferences: input.text });
+  if (!saved.ok) return saved;
+  const { hidden, restored } = applyExclusionsNow(r.value.keywords.exclude_companies);
+  if (hidden || restored) {
+    revalidatePath("/offers");
+    revalidatePath("/");
+  }
+  return {
+    ok: true,
+    message: saved.message ?? "Saved",
+    hash: preferencesHash(input.text),
+    text: input.text,
+    values: withoutSources(r.value),
+    rescoreSuggested: true,
+  };
 }
 
 export async function rescoreOpenOffers(): Promise<ActionResult> {
@@ -248,18 +270,3 @@ export async function checkSiteSession(siteId: string): Promise<ActionResult> {
 }
 
 /** Replaces the excluded-companies list (one per line) and applies it to stored offers. */
-export async function saveExcludedCompanies(text: string): Promise<ActionResult> {
-  if (typeof text !== "string" || text.length > 20_000) return { ok: false, error: "Too long" };
-  const list = cleanCompanyList(text.split(/\r?\n/));
-  const updated = preferencesWithCompanies(list);
-  if (!updated.ok) return { ok: false, error: "Not saved", errors: updated.errors };
-  const saved = await saveProfileText({ preferences: updated.text });
-  if (!saved.ok) return saved;
-  const { hidden, restored } = applyExclusionsNow(list);
-  revalidatePath("/offers");
-  revalidatePath("/");
-  return {
-    ok: true,
-    message: `Saved ${list.length} compan${list.length === 1 ? "y" : "ies"}: ${hidden} offers hidden, ${restored} restored`,
-  };
-}

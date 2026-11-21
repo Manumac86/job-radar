@@ -50,4 +50,23 @@ export const modelScoreSchema = z
   })
   .strict();
 
-export type ModelScore = z.infer<typeof modelScoreSchema>;
+/** CV variant recommendation, requested only when the owner has variants (cv-variants D2). */
+export const cvRecommendationSchema = z
+  .object({
+    recommended: z.string().describe("Id of the CV variant to send for this offer"),
+    reason: z.string().max(200).describe("One sentence: why this variant fits the offer"),
+    gaps: z
+      .array(z.string().max(120))
+      .max(5)
+      .describe(
+        "Offer requirements the master CV supports but the recommended variant does not show",
+      ),
+  })
+  .strict();
+
+export const modelScoreWithCvSchema = modelScoreSchema
+  .extend({ cv: cvRecommendationSchema })
+  .strict();
+
+export type CvRecommendation = z.infer<typeof cvRecommendationSchema>;
+export type ModelScore = z.infer<typeof modelScoreSchema> & { cv?: CvRecommendation };

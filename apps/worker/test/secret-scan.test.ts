@@ -68,6 +68,7 @@ describe("secret scan", () => {
           waitFor: async () => true,
           scroll: async () => {},
           safeClick: async () => {},
+          jsonResponses: async () => [],
           pagesViewed: 1,
         };
         void site;

@@ -5,8 +5,13 @@ import {
   MemoryUsageStore,
   type ModelScore,
 } from "@job-radar/core";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import {
+  createApplication,
   createLearnedPreference,
+  setTriage,
+  staleCvRecommendationCount,
   getOffer,
   setLearnedStatus,
   listNotifications,
@@ -196,5 +201,58 @@ describe("scoring service", () => {
     s.budget.record({ kind: "scoring", model: "haiku", ok: true });
     expect(new MemoryUsageStore().count("x", ["scoring"])).toBe(0);
     expect(s.budget.used("scoring")).toBe(1);
+  });
+});
+
+describe("CV variant recommendations", () => {
+  const writeVariant = (dir: string) => {
+    mkdirSync(join(dir, "cvs"), { recursive: true });
+    writeFileSync(
+      join(dir, "cvs", "tech-lead.md"),
+      "---\nname: Tech Lead\nuse_for: Lead roles\n---\nLed a team of 6.\n",
+    );
+  };
+
+  it("stores the recommendation, gaps and the variants hash with the score", async () => {
+    const s = setup([
+      score(82, { cv: { recommended: "tech-lead", reason: "Leadership role.", gaps: ["Go"] } }),
+    ]);
+    writeVariant(s.profile.dir);
+    s.profile.reload();
+    const [id] = s.ingest(1);
+    s.scoring.enqueue([id!]);
+    await s.scoring.idle();
+    expect(s.client.requests[0]!.prompt).toContain("[tech-lead] Tech Lead");
+    expect(scoreHistory(s.db, id!)[0]).toMatchObject({
+      recommendedCv: "tech-lead",
+      cvReason: "Leadership role.",
+      cvGaps: ["Go"],
+      cvVariantsHash: s.profile.variantsHash(),
+    });
+    expect(staleCvRecommendationCount(s.db, s.profile.variantsHash())).toBe(0);
+  });
+
+  it("refresh queues only shortlisted offers without an application, within the cap", async () => {
+    const s = setup([], { scoring: 4, drafts: 1 }, () => score(75));
+    const ids = s.ingest(5);
+    s.scoring.enqueue(ids);
+    await s.scoring.idle(); // 4 scored, 1 waits for the cap
+    const [a, b, c, d] = ids as [number, number, number, number];
+    for (const id of [a, b, c]) setTriage(s.db, id, "shortlisted");
+    createApplication(s.db, { offerId: c });
+    writeVariant(s.profile.dir);
+    s.profile.reload();
+    expect(staleCvRecommendationCount(s.db, s.profile.variantsHash())).toBe(2);
+
+    const app = createApp({ db: s.db, profile: s.profile, scoring: s.scoring });
+    await request(app).post("/scoring/refresh-cv").expect(202, { queued: 2 });
+    await s.scoring.idle();
+    // The cap was already used: both wait as "awaiting score"; d and c are untouched.
+    expect([a, b].map((id) => getOffer(s.db, id)!.scoreStatus)).toEqual([
+      "awaiting_score",
+      "awaiting_score",
+    ]);
+    expect(getOffer(s.db, c)!.scoreStatus).toBe("scored");
+    expect(getOffer(s.db, d)!.scoreStatus).toBe("scored");
   });
 });

@@ -1,5 +1,6 @@
 import { describeCompensation, type OfferForLlm } from "../offers/types";
 import type { Profile } from "../profile/schema";
+import type { CvVariant } from "../profile/variants";
 import { UNTRUSTED_DATA_RULES, wrapUntrusted } from "../llm/untrusted";
 import { companyProfileBlock, type CompanyProfileForPrompt } from "../research/prompt";
 
@@ -86,9 +87,36 @@ export function buildScoringPrompt(
         ]
       : []),
     ...(company ? [companyProfileBlock(company), ""] : []),
+    ...(profile.variants?.length ? [cvVariantsBlock(profile.variants), ""] : []),
     "Offer to evaluate (untrusted data):",
     wrapUntrusted("offer", offerForPrompt(offer)),
     "",
     "Return the score object.",
   ].join("\n");
+}
+
+/** Characters of each variant sent to scoring, and of all variants together (design D2). */
+export const VARIANT_PROMPT_CHARS = 2_500;
+export const VARIANTS_PROMPT_TOTAL = 12_000;
+
+/**
+ * The owner's CV variants for the recommendation. Fit is still judged on the master CV;
+ * variants past the total budget are listed with their name and use only.
+ */
+export function cvVariantsBlock(variants: readonly CvVariant[]): string {
+  let used = 0;
+  const parts = variants.map((v) => {
+    const head = `[${v.id}] ${v.name} (use for: ${v.useFor})`;
+    const room = Math.min(VARIANT_PROMPT_CHARS, VARIANTS_PROMPT_TOTAL - used);
+    if (room <= 0) return `${head}\n(text not included)`;
+    const body = v.text.slice(0, room);
+    used += body.length;
+    return `${head}\n${body}${v.text.length > body.length ? "\n[…truncated]" : ""}`;
+  });
+  return [
+    "CV variants (trusted, the owner's own documents):",
+    "Judge every fit score from the master CV above, never from a variant: the variants only decide which document to send.",
+    "In `cv`, set `recommended` to the id of the variant whose emphasis best matches this offer, give a one-sentence reason, and list as `gaps` up to five requirements of the offer that the master CV supports but the recommended variant does not show. Use only the ids in brackets.",
+    ...parts,
+  ].join("\n\n");
 }

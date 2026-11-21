@@ -4,6 +4,7 @@ test("'Delete browser profile' logs out every logged-in source", async ({ page }
   await page.goto("/settings");
   await page.getByRole("tab", { name: "Sessions" }).click();
   await expect(page.getByText("never passwords")).toBeVisible();
+  await expect(page.getByText("SimpleApply (logged-in)")).toBeVisible();
   await page.getByRole("button", { name: "Delete browser profile" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toContainText("logs you out of every site");

@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   addInterview,
   createApplication,
+  createDraft,
+  offerTimeline,
+  responsePatterns,
+  setApplicationCv,
+  suggestedCvSent,
   dashboardMetrics,
   hasAnyOffers,
   insertOffer,
@@ -13,7 +18,21 @@ import {
   upsertEngagement,
   upsertSource,
 } from "../src/index";
-import { memoryDb } from "./helpers";
+import { memoryDb, seedOffer, seedSource } from "./helpers";
+
+const scoreRow = (offerId: number) => ({
+  offerId,
+  overall: 70,
+  modelOverall: 70,
+  skillsFit: 70,
+  seniorityFit: 70,
+  rateFit: 70,
+  locationFit: 70,
+  engagementFit: 70,
+  scoreClass: "possible" as const,
+  rationale: "r",
+  model: "haiku",
+});
 
 const NOW = new Date("2026-11-15T12:00:00Z");
 const daysAgo = (n: number) => new Date(NOW.getTime() - n * 86_400_000);
@@ -144,5 +163,71 @@ describe("dashboard metrics", () => {
     expect(m.committedHours).toBe(24);
     expect(m.upcomingInterviews.map((i) => i.type)).toEqual(["technical"]);
     expect(m.dueNextSteps.map((s) => s.description)).toEqual(["Send references"]);
+  });
+});
+
+describe("CV sent", () => {
+  const variants = [
+    { id: "tech-lead", name: "Tech Lead" },
+    { id: "ai-engineer", name: "AI Engineer" },
+  ];
+
+  it("pre-selects the sent draft's variant, else the recommendation, else the master CV", () => {
+    const db = memoryDb();
+    seedSource(db);
+    const a = seedOffer(db);
+    const d = createDraft(db, {
+      offerId: a.id,
+      message: "Hi",
+      model: "sonnet",
+      cvVariant: "ai-engineer",
+      cvVariantName: "AI Engineer",
+    });
+    expect(suggestedCvSent(db, a.id, d.id, variants)).toEqual({
+      id: "ai-engineer",
+      name: "AI Engineer",
+    });
+
+    const b = seedOffer(db);
+    recordScore(db, { ...scoreRow(b.id), recommendedCv: "tech-lead" });
+    expect(suggestedCvSent(db, b.id, null, variants)).toEqual({
+      id: "tech-lead",
+      name: "Tech Lead",
+    });
+
+    const c = seedOffer(db);
+    recordScore(db, { ...scoreRow(c.id), recommendedCv: "deleted-one" });
+    expect(suggestedCvSent(db, c.id, null, variants)).toEqual({ id: "master", name: "Master CV" });
+    expect(suggestedCvSent(db, c.id, null, [])).toBeNull();
+  });
+
+  it("records it, changes it with a timeline entry, and groups response patterns by it", () => {
+    const db = memoryDb();
+    seedSource(db);
+    const make = (cv: { id: string; name: string } | null, responded: boolean) => {
+      const o = seedOffer(db);
+      const app = createApplication(db, { offerId: o.id, cv });
+      if (responded) moveStage(db, app.id, "screening_call");
+      return { o, app };
+    };
+    const first = make({ id: "tech-lead", name: "Tech Lead" }, true);
+    make({ id: "tech-lead", name: "Tech Lead" }, false);
+    make({ id: "ai-engineer", name: "AI Engineer" }, false);
+    make(null, false);
+
+    const changed = setApplicationCv(db, first.app.id, { id: "master", name: "Master CV" });
+    expect(changed).toMatchObject({ cvVariant: "master", cvVariantName: "Master CV" });
+    expect(offerTimeline(db, first.o.id).map((e) => e.message)).toContain(
+      "CV sent changed to Master CV",
+    );
+
+    const cv = responsePatterns(db).dimensions.find((d) => d.key === "cv");
+    expect(cv?.label).toBe("CV sent");
+    expect(cv?.rows.map((r) => [r.value, r.applications, r.responded])).toEqual([
+      ["Master CV", 1, 1],
+      ["Tech Lead", 1, 0],
+      ["AI Engineer", 1, 0],
+      ["Unknown", 1, 0],
+    ]);
   });
 });

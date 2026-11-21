@@ -8,8 +8,10 @@ import {
   drafts,
   offerFeedback,
   offers,
+  scores,
   stageTransitions,
   type BuiltinStage,
+  type TransitionSource,
 } from "../schema";
 import { addTimelineEvent } from "./timeline";
 
@@ -95,7 +97,14 @@ export function getApplicationForOffer(db: Db, offerId: number): Application | u
  */
 export function createApplication(
   db: Db,
-  input: { offerId: number; sentDraftId?: number | null; note?: string | null; at?: Date },
+  input: {
+    offerId: number;
+    sentDraftId?: number | null;
+    note?: string | null;
+    at?: Date;
+    /** The CV sent (cv-variants D5): a variant, or { id: "master" }; omitted means unknown. */
+    cv?: CvSent | null;
+  },
 ): Application {
   return db.transaction((tx) => {
     const existing = tx
@@ -119,6 +128,8 @@ export function createApplication(
         stage: "applied",
         appliedAt: at,
         lastActivityAt: at,
+        cvVariant: input.cv?.id ?? null,
+        cvVariantName: input.cv?.name ?? null,
       })
       .returning()
       .get();
@@ -150,11 +161,74 @@ export function createApplication(
   });
 }
 
+export interface CvSent {
+  id: string;
+  name: string;
+}
+
+/**
+ * CV to pre-select in "Mark as applied": the sent draft's variant, else the offer's
+ * recommended variant, else the master CV. Null when the owner has no variants.
+ */
+export function suggestedCvSent(
+  db: Db,
+  offerId: number,
+  sentDraftId: number | null,
+  variants: readonly { id: string; name: string }[],
+): CvSent | null {
+  if (!variants.length) return null;
+  const nameOf = (id: string) =>
+    id === "master" ? "Master CV" : (variants.find((v) => v.id === id)?.name ?? null);
+  if (sentDraftId) {
+    const d = db.select().from(drafts).where(eq(drafts.id, sentDraftId)).get();
+    if (d?.cvVariant)
+      return { id: d.cvVariant, name: d.cvVariantName ?? nameOf(d.cvVariant) ?? d.cvVariant };
+  }
+  const rec = db
+    .select({ id: scores.recommendedCv })
+    .from(scores)
+    .where(eq(scores.offerId, offerId))
+    .orderBy(desc(scores.createdAt), desc(scores.id))
+    .get()?.id;
+  const recName = rec ? nameOf(rec) : null;
+  if (rec && recName) return { id: rec, name: recName };
+  return { id: "master", name: "Master CV" };
+}
+
+/** Changes the CV recorded as sent, with a timeline entry (cv-variants D5). */
+export function setApplicationCv(db: Db, applicationId: number, cv: CvSent | null): Application {
+  return db.transaction((tx) => {
+    const app = tx.select().from(applications).where(eq(applications.id, applicationId)).get();
+    if (!app) throw new Error(`Application ${applicationId} not found`);
+    if ((app.cvVariant ?? null) === (cv?.id ?? null)) return app;
+    const updated = tx
+      .update(applications)
+      .set({ cvVariant: cv?.id ?? null, cvVariantName: cv?.name ?? null, updatedAt: new Date() })
+      .where(eq(applications.id, applicationId))
+      .returning()
+      .get();
+    addTimelineEvent(tx, {
+      offerId: app.offerId,
+      applicationId,
+      kind: "cv_sent",
+      message: cv ? `CV sent changed to ${cv.name}` : "CV sent cleared",
+      data: { cvVariant: cv?.id ?? null },
+    });
+    return updated;
+  });
+}
+
 export function moveStage(
   db: Db,
   applicationId: number,
   toStage: string,
-  options: { note?: string | null; at?: Date } = {},
+  options: {
+    note?: string | null;
+    at?: Date;
+    /** Who made the change (application-emails D5). */
+    source?: TransitionSource;
+    emailId?: number | null;
+  } = {},
 ): Application {
   const stages = listStages(db);
   const target = stages.find((s) => s.key === toStage);
@@ -181,7 +255,15 @@ export function moveStage(
       .get();
     if (!updated) throw new Error(`Application ${applicationId} not found`);
     tx.insert(stageTransitions)
-      .values({ applicationId, fromStage: app.stage, toStage, note: options.note ?? null, at })
+      .values({
+        applicationId,
+        fromStage: app.stage,
+        toStage,
+        note: options.note ?? null,
+        source: options.source ?? "manual",
+        emailId: options.emailId ?? null,
+        at,
+      })
       .run();
     const fromLabel = stages.find((s) => s.key === app.stage)?.label ?? app.stage;
     addTimelineEvent(tx, {
@@ -189,7 +271,13 @@ export function moveStage(
       applicationId,
       kind: "stage_changed",
       message: `${fromLabel} → ${target.label}${options.note ? `: ${options.note}` : ""}`,
-      data: { from: app.stage, to: toStage },
+      data: {
+        from: app.stage,
+        to: toStage,
+        ...(options.source === "email"
+          ? { source: "email", emailId: options.emailId ?? null }
+          : {}),
+      },
       at,
     });
     return updated;

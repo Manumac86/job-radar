@@ -13,6 +13,8 @@ const config: NextConfig = {
   // Native module: loaded by Node at runtime, never bundled.
   serverExternalPackages: ["better-sqlite3"],
   poweredByHeader: false,
+  // SimpleApply CSV exports are uploaded through a server action (up to 5 MB).
+  experimental: { serverActions: { bodySizeLimit: "6mb" } },
 };
 
 export default config;

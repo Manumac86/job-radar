@@ -32,10 +32,12 @@ import {
   saveEngagement,
   saveInterview,
   saveNextStep,
+  setCvSent,
   type ActionResult,
 } from "./actions";
 import type { CardData, StageData } from "./board";
 import { InterviewPrepSection } from "./interview-prep";
+import { EmailEntry } from "@/components/email-entry";
 
 const INTERVIEW_TYPES = [
   ["screening", "Screening"],
@@ -425,13 +427,48 @@ function EngagementForm({ card }: { card: CardData }) {
   );
 }
 
+function CvSentForm({
+  card,
+  cvOptions,
+}: {
+  card: CardData;
+  cvOptions: { id: string; name: string }[];
+}) {
+  const { pending, run } = useAction();
+  // A deleted variant stays selectable under its recorded name.
+  const options =
+    card.cv && !cvOptions.some((o) => o.id === card.cv?.id) ? [...cvOptions, card.cv] : cvOptions;
+  return (
+    <Section title="CV sent">
+      <Select
+        value={card.cv?.id ?? ""}
+        disabled={pending}
+        onValueChange={(id) => run(() => setCvSent(card.id, id))}
+      >
+        <SelectTrigger aria-label="CV sent" className="w-full sm:w-64">
+          <SelectValue placeholder="Unknown" />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((o) => (
+            <SelectItem key={o.id} value={o.id}>
+              {o.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </Section>
+  );
+}
+
 export function ApplicationSheet({
   card,
   stages,
+  cvOptions = [],
   onClose,
 }: {
   card: CardData | null;
   stages: StageData[];
+  cvOptions?: { id: string; name: string }[];
   onClose: () => void;
 }) {
   return (
@@ -451,6 +488,28 @@ export function ApplicationSheet({
             <div className="space-y-6 px-4 pb-6">
               <StageForm key={`stage-${card.id}-${card.stage}`} card={card} stages={stages} />
               <Separator />
+              {card.emails.length ? (
+                <>
+                  <Section title="Emails">
+                    <div className="space-y-2">
+                      {[...card.emails].reverse().map((e) => (
+                        <EmailEntry key={`${e.id}-${e.status}`} email={e} compact />
+                      ))}
+                    </div>
+                  </Section>
+                  <Separator />
+                </>
+              ) : null}
+              {cvOptions.length || card.cv ? (
+                <>
+                  <CvSentForm
+                    key={`cv-${card.id}-${card.cv?.id ?? ""}`}
+                    card={card}
+                    cvOptions={cvOptions}
+                  />
+                  <Separator />
+                </>
+              ) : null}
               <InterviewPrepSection card={card} />
               <Separator />
               <InterviewForm key={`int-${card.id}`} card={card} />

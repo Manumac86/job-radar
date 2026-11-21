@@ -12,8 +12,12 @@ export function isAppUrl(raw: string, webPort: number, loadingFile?: string): bo
   return url.protocol === "http:" && url.hostname === "127.0.0.1" && url.port === String(webPort);
 }
 
-/** Links that may be handed to the default browser; everything else is dropped. */
+/** "Open in Mail" links (application-emails D7): Apple Mail's message:// URL for one Message-ID. */
+const MAIL_MESSAGE = /^message:\/\/%3c[^/\s]+%3e$/i;
+
+/** Links that may be handed to the default browser (or Mail); everything else is dropped. */
 export function isExternalAllowed(raw: string): boolean {
+  if (MAIL_MESSAGE.test(raw)) return true;
   try {
     return ["http:", "https:", "mailto:"].includes(new URL(raw).protocol);
   } catch {

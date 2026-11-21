@@ -17,6 +17,7 @@ import {
   getOffer,
   offersAwaitingScore,
   openOfferIds,
+  shortlistedWithoutApplicationIds,
   recordScore,
   setScoreStatus,
   type Db,
@@ -123,6 +124,18 @@ export class ScoringService {
     return this.enqueue(ids);
   }
 
+  /**
+   * "Refresh CV recommendations": rescores shortlisted offers without an application.
+   * Returns how many were marked; while the daily cap is reached they wait as
+   * "awaiting score" and the next sweep scores them.
+   */
+  refreshCvRecommendations(): number {
+    const ids = shortlistedWithoutApplicationIds(this.deps.db);
+    for (const id of ids) setScoreStatus(this.deps.db, id, "awaiting_score");
+    this.enqueue(ids);
+    return ids.length;
+  }
+
   /** Manual retry for one offer (e.g. after "scoring failed"). */
   retry(offerId: number): boolean {
     const offer = getOffer(this.deps.db, offerId);
@@ -194,6 +207,10 @@ export class ScoringService {
         redFlags: final.redFlags,
         serviceLines: res.score.service_lines,
         isLeadership: res.score.is_leadership,
+        recommendedCv: res.score.cv?.recommended ?? null,
+        cvReason: res.score.cv?.reason ?? null,
+        cvGaps: res.score.cv?.gaps ?? null,
+        cvVariantsHash: this.deps.profile.variantsHash() || null,
         model: res.model,
         createdAt: this.now(),
       });

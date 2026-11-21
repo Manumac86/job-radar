@@ -146,3 +146,46 @@ describe("company facts in drafts", () => {
     expect(client.requests[0]?.prompt).not.toContain("Company profile");
   });
 });
+
+describe("drafts for a CV variant", () => {
+  const variant = {
+    id: "tech-lead",
+    name: "Tech Lead",
+    useFor: "Lead roles",
+    // A variant may also carry a figure the master CV lacks; it is still not a grounded fact.
+    text: "Leadership first. Grew a team to 23 engineers.",
+  };
+  const written = {
+    ...base,
+    message:
+      "Hi Northwind team, 10 years building web products, the last 4 shipping LLM features. I grew a team to 23 engineers and would bring the same hands-on approach to your 12 enterprise clients.",
+    screening_answers: [],
+  };
+
+  it("puts the variant to emphasize after the full CV, which stays the source of facts", async () => {
+    const client = new FakeLlmClient([written]);
+    await draftApplication({ client }, profile, offer, { cvVariant: variant });
+    const prompt = client.requests[0]!.prompt;
+    expect(prompt).toContain(
+      "Full CV (trusted, the only source of facts; facts may come from here):",
+    );
+    expect(prompt).toContain('the "Tech Lead" version of the CV');
+    expect(prompt.indexOf("Full CV")).toBeLessThan(prompt.indexOf("CV to emphasize"));
+  });
+
+  it("keeps facts from the master CV and flags ones found in neither the master CV nor the profile", async () => {
+    const client = new FakeLlmClient([written]);
+    const { draft } = await draftApplication({ client }, profile, offer, { cvVariant: variant });
+    expect(draft.message).toContain("10 years building web products");
+    expect(draft.message).toContain("[VERIFY: 23 engineers]");
+  });
+
+  it("without a variant the prompt is unchanged", async () => {
+    const client = new FakeLlmClient([base]);
+    await draftApplication({ client }, profile, offer);
+    expect(client.requests[0]!.prompt).toContain(
+      "Candidate CV (trusted, the only source of facts):",
+    );
+    expect(client.requests[0]!.prompt).not.toContain("CV to emphasize");
+  });
+});

@@ -19,6 +19,7 @@ import {
 import { db } from "@/lib/db";
 import { workerFetch } from "@/lib/worker";
 import { saveProfileText } from "../../settings/actions";
+import { cvSentFor } from "@/lib/profile";
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
 
@@ -94,10 +95,16 @@ export async function dismissOffer(
 }
 
 /** The owner sent the application by hand; this only records it. */
-export async function markApplied(offerId: number, draftId: number | null): Promise<ActionResult> {
+export async function markApplied(
+  offerId: number,
+  draftId: number | null,
+  cvId: string | null = null,
+): Promise<ActionResult> {
   if (!getOffer(db(), offerId)) return { ok: false, error: "Offer not found" };
+  const cv = cvId ? cvSentFor(cvId) : null;
+  if (cvId && !cv) return { ok: false, error: "That CV variant no longer exists" };
   try {
-    createApplication(db(), { offerId, sentDraftId: draftId });
+    createApplication(db(), { offerId, sentDraftId: draftId, cv });
   } catch (err) {
     return {
       ok: false,
@@ -108,12 +115,18 @@ export async function markApplied(offerId: number, draftId: number | null): Prom
   return { ok: true, message: "Marked as applied" };
 }
 
-export async function generateDraft(offerId: number, instruction: string): Promise<ActionResult> {
+export async function generateDraft(
+  offerId: number,
+  instruction: string,
+  cvVariantId: string | null = null,
+): Promise<ActionResult> {
   const r = z.string().trim().max(500).safeParse(instruction);
   if (!r.success) return { ok: false, error: "Instruction is too long" };
+  if (cvVariantId && !cvSentFor(cvVariantId))
+    return { ok: false, error: "That CV variant no longer exists" };
   const res = await workerFetch(`/offers/${offerId}/drafts`, {
     method: "POST",
-    body: JSON.stringify({ instruction: r.data || null }),
+    body: JSON.stringify({ instruction: r.data || null, cvVariantId }),
   });
   if (!res.ok) return { ok: false, error: res.error };
   refresh(offerId);
@@ -141,7 +154,7 @@ export async function hideCompany(offerId: number): Promise<ActionResult> {
   revalidatePath("/settings");
   return {
     ok: true,
-    message: `${offer.companyName} hidden (${hidden} offer${hidden === 1 ? "" : "s"}). Undo in Settings → General.`,
+    message: `${offer.companyName} hidden (${hidden} offer${hidden === 1 ? "" : "s"}). Undo in Settings → Preferences.`,
   };
 }
 

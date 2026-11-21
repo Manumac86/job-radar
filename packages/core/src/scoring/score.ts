@@ -4,7 +4,8 @@ import type { Profile } from "../profile/schema";
 import type { CompanyProfileForPrompt } from "../research/prompt";
 import type { CompanyProfile } from "../research/schema";
 import { SCORING_SYSTEM, buildScoringPrompt, type LearnedForPrompt } from "./prompt";
-import { modelScoreSchema, type ModelScore } from "./schema";
+import type { CvVariant } from "../profile/variants";
+import { modelScoreSchema, modelScoreWithCvSchema, type ModelScore } from "./schema";
 
 /** Asks the model for a structured score. Hard rules are applied afterwards (rules.ts). */
 export async function scoreOfferWithModel(
@@ -15,15 +16,24 @@ export async function scoreOfferWithModel(
   learned: LearnedForPrompt[] = [],
   company: CompanyProfileForPrompt | null = null,
 ): Promise<{ score: ModelScore; model: string; attempts: number }> {
-  const res = await callStructured(deps, {
+  const variants = profile.variants ?? [];
+  const res = await callStructured<ModelScore>(deps, {
     kind: "scoring",
     model,
     system: SCORING_SYSTEM,
     prompt: buildScoringPrompt(profile, offer, learned, company),
-    schema: modelScoreSchema,
+    schema: variants.length ? modelScoreWithCvSchema : modelScoreSchema,
     schemaName: "offer_score",
   });
-  return { score: res.value, model: res.model, attempts: res.attempts };
+  return { score: knownVariantOnly(res.value, variants), model: res.model, attempts: res.attempts };
+}
+
+/** Drops a recommendation that names no existing variant; the score itself is kept. */
+export function knownVariantOnly(score: ModelScore, variants: readonly CvVariant[]): ModelScore {
+  if (!score.cv) return score;
+  if (variants.some((v) => v.id === score.cv?.recommended)) return score;
+  const { cv: _dropped, ...rest } = score;
+  return rest;
 }
 
 const RULE_STAGES = new Set<string>(modelScoreSchema.shape.company.shape.stage.options);

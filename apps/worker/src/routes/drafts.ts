@@ -4,7 +4,12 @@ import { z } from "zod";
 import type { WorkerContext } from "../context";
 import { DraftError } from "../drafts/service";
 
-const body = z.object({ instruction: z.string().trim().max(500).optional().nullable() }).strict();
+const body = z
+  .object({
+    instruction: z.string().trim().max(500).optional().nullable(),
+    cvVariantId: z.string().trim().max(40).optional().nullable(),
+  })
+  .strict();
 
 export function draftRoutes(ctx: WorkerContext): Router {
   const r = Router();
@@ -20,7 +25,10 @@ export function draftRoutes(ctx: WorkerContext): Router {
       return void res.status(400).json({ error: "Invalid request" });
     }
     try {
-      const draft = await ctx.drafts.generate(id, { instruction: parsed.data.instruction || null });
+      const draft = await ctx.drafts.generate(id, {
+        instruction: parsed.data.instruction || null,
+        cvVariantId: parsed.data.cvVariantId || null,
+      });
       res.status(201).json(draft);
     } catch (err) {
       if (err instanceof DraftError)

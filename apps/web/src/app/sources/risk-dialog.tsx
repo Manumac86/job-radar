@@ -11,7 +11,10 @@ import {
 } from "@/components/ui/dialog";
 
 /** Site-specific risk notices for logged-in adapters (browser-sessions spec). */
-export const RISK_NOTICES: Record<string, { text: string; preferEmail: boolean }> = {
+export const RISK_NOTICES: Record<
+  string,
+  { text: string; preferEmail: boolean; alternative?: string }
+> = {
   upwork: {
     text: "Upwork's terms restrict automated access. Even read-only browsing can lead to account limits or suspension.",
     preferEmail: true,
@@ -27,6 +30,12 @@ export const RISK_NOTICES: Record<string, { text: string; preferEmail: boolean }
   wellfound: {
     text: "Wellfound may limit accounts that browse automatically. Job Radar only reads pages, slowly, with a page cap.",
     preferEmail: false,
+  },
+  simpleapply: {
+    text: "SimpleApply is a service that can apply for you. Job Radar only reads your match list: it never applies, marks applied, hides a job or touches Full Auto Apply. Automated reading may go against SimpleApply's terms.",
+    preferEmail: false,
+    alternative:
+      "Offers → Import → SimpleApply CSV: export the CSV in SimpleApply and import it. It carries no account risk.",
   },
   mercor: {
     text: "Mercor may limit accounts that browse automatically. Job Radar only reads pages, slowly, with a page cap.",
@@ -71,6 +80,9 @@ export function RiskDialog({
             Recommended instead: forward {sourceName} job alerts to your <strong>job-alerts</strong>{" "}
             label and use the job-alert email source. It carries no account risk.
           </p>
+        ) : null}
+        {notice.alternative ? (
+          <p className="rounded-md border p-2 text-sm">Recommended instead: {notice.alternative}</p>
         ) : null}
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>

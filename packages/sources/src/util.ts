@@ -24,10 +24,13 @@ export function inferRemotePolicy(
     .filter((h) => typeof h === "string")
     .join(" ")
     .toLowerCase();
-  if (/\bhybrid\b/.test(text)) return "hybrid";
-  if (hints.includes(true) || /\bremote\b|anywhere|distributed|work from home|wfh/.test(text))
+  if (/\bhybrid\b|h[ií]brido/.test(text)) return "hybrid";
+  if (
+    hints.includes(true) ||
+    /\bremote\b|\bremoto\b|anywhere|distributed|work from home|wfh/.test(text)
+  )
     return "remote";
-  if (/on-?site|in-?office|onsite/.test(text)) return "onsite";
+  if (/on-?site|in[- ]?office|onsite|presencial/.test(text)) return "onsite";
   return "unknown";
 }
 

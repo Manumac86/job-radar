@@ -1,10 +1,16 @@
 // Seeds an isolated test database for the UI tests (never the real data/ directory).
 import {
+  addTimelineEvent,
   createApplication,
   createDraft,
+  insertApplicationEmail,
+  moveStage,
+  transitionForEmail,
+  updateApplicationEmail,
   insertOffer,
   openDatabase,
   recordScore,
+  setTriage,
   upsertCompany,
   upsertSource,
 } from "@job-radar/db";
@@ -25,6 +31,12 @@ upsertSource(db, { id: "ashby", type: "ashby", name: "Ashby job boards", enabled
 upsertSource(db, { id: "remoteok", type: "remoteok", name: "RemoteOK", enabled: false });
 upsertSource(db, { id: "fake", type: "fake", name: "Test source", enabled: true });
 upsertSource(db, { id: "upwork", type: "upwork", name: "Upwork (logged-in)", requiresLogin: true });
+upsertSource(db, {
+  id: "simpleapply",
+  type: "simpleapply",
+  name: "SimpleApply (logged-in)",
+  requiresLogin: true,
+});
 
 const offers: [
   string,
@@ -42,6 +54,8 @@ const offers: [
   // Dismissed in learning.spec.ts.
   ["Blockchain Engineer", "Chainlab", 64, "possible", "full-time", "ashby"],
   ["Web3 Backend Engineer", "Tokenly", 62, "possible", "full-time", "ashby"],
+  // Shortlisted for cv-variants.spec.ts (CV recommendation, draft and CV sent).
+  ["Head of Platform", "Woodgrove", 66, "possible", "full-time", "ashby"],
 ];
 offers.forEach(([title, company, score, cls, engagement, source], i) => {
   const c = upsertCompany(db, {
@@ -68,6 +82,17 @@ offers.forEach(([title, company, score, cls, engagement, source], i) => {
     rateUnknown: false,
     description: `${title} at ${company}. Agentic RAG, TypeScript and Next.js.`,
     postedAt: new Date(Date.now() - i * 86_400_000),
+    // Imported from a LinkedIn link: a long company URL in the metadata (offer-detail.spec.ts).
+    ...(title === "Contract AI Engineer"
+      ? {
+          companyMeta: {
+            via: "LinkedIn link",
+            linkedin:
+              "https://es.linkedin.com/company/northwind-consulting-and-engineering-services",
+            seniority_level: "Mid-Senior level",
+          },
+        }
+      : {}),
   });
   recordScore(db, {
     offerId: offer.id,
@@ -85,6 +110,7 @@ offers.forEach(([title, company, score, cls, engagement, source], i) => {
     model: "seed",
   });
   if (i === 1) createApplication(db, { offerId: offer.id });
+  if (title === "Head of Platform") setTriage(db, offer.id, "shortlisted");
   if (i === 0) {
     createDraft(db, {
       offerId: offer.id,
@@ -101,5 +127,119 @@ offers.forEach(([title, company, score, cls, engagement, source], i) => {
     });
   }
 });
+// Replies for mail.spec.ts (application-emails): two applications at one fictional company,
+// one already moved by an email (with Undo) and one suggestion that could be either.
+const adatum = upsertCompany(db, {
+  name: "Adatum",
+  normalizedName: "adatum",
+  website: "https://adatum.example",
+});
+const adatumApps = ["Platform Engineer", "Data Platform Engineer"].map((title, i) => {
+  const offer = insertOffer(db, {
+    sourceId: "ashby",
+    externalId: `seed-adatum-${i}`,
+    sourceUrl: `https://jobs.example.invalid/adatum-${i}`,
+    title,
+    normalizedTitle: title.toLowerCase(),
+    companyId: adatum.id,
+    companyName: "Adatum",
+    remotePolicy: "remote",
+    engagementType: "full-time",
+    description: `${title} at Adatum.`,
+  });
+  return createApplication(db, {
+    offerId: offer.id,
+    at: new Date(Date.now() - (5 - i) * 86_400_000),
+  });
+});
+const [platform, dataPlatform] = adatumApps as [
+  (typeof adatumApps)[number],
+  (typeof adatumApps)[number],
+];
+const invite = insertApplicationEmail(db, {
+  messageId: "<invite-1@adatum.example>",
+  folder: "INBOX",
+  receivedAt: new Date(Date.now() - 3_600_000),
+  fromName: "Dana at Adatum",
+  fromAddress: "dana@adatum.example",
+  subject: "Platform Engineer: next steps",
+  excerpt: "We'd like to schedule a screening call.",
+  candidates: [platform.id, dataPlatform.id],
+  status: "queued",
+});
+if (!invite) throw new Error("seed: invite email");
+moveStage(db, platform.id, "screening_call", {
+  note: "From email",
+  source: "email",
+  emailId: invite.id,
+});
+updateApplicationEmail(db, invite.id, {
+  applicationId: platform.id,
+  category: "interview_invitation",
+  confidence: "high",
+  summary: "Invites you to a screening call next week.",
+  status: "auto_applied",
+  result: {
+    reply: {
+      applicationId: platform.id,
+      category: "interview_invitation",
+      confidence: "high",
+      summary: "Invites you to a screening call next week.",
+      nextStep: null,
+      interview: { kind: "screening", scheduledAt: null, timeZone: null, link: null },
+      issues: [],
+    },
+    decision: { action: "auto", targetStage: "screening_call", reasons: [] },
+  },
+  undo: {
+    previousStage: "applied",
+    targetStage: "screening_call",
+    transitionId: transitionForEmail(db, invite.id)?.id ?? null,
+    previousNextStep: null,
+    nextStepId: null,
+    nextStep: null,
+    interviewId: null,
+    interviewScheduledAt: null,
+    previousFirstResponseAt: null,
+  },
+});
+addTimelineEvent(db, {
+  offerId: platform.offerId,
+  applicationId: platform.id,
+  kind: "email",
+  message: "Email from Dana at Adatum: Invites you to a screening call next week.",
+  data: { emailId: invite.id, status: "auto_applied" },
+});
+insertApplicationEmail(db, {
+  messageId: "<task-1@adatum.example>",
+  folder: "INBOX",
+  receivedAt: new Date(Date.now() - 1_800_000),
+  fromName: "Adatum Hiring",
+  fromAddress: "jobs@adatum.example",
+  subject: "Your take-home assignment",
+  excerpt: "Here is the take-home assignment for your application.",
+  candidates: [dataPlatform.id, platform.id],
+  category: "take_home",
+  confidence: "medium",
+  summary: "Sends a take-home assignment due in a week.",
+  status: "suggested",
+  result: {
+    reply: {
+      applicationId: null,
+      category: "take_home",
+      confidence: "medium",
+      summary: "Sends a take-home assignment due in a week.",
+      nextStep: { description: "Submit the take-home", dueAt: null },
+      interview: null,
+      issues: [],
+    },
+    decision: {
+      action: "suggest",
+      targetStage: null,
+      reasons: ["medium confidence", "not sure which application it is about"],
+    },
+  },
+});
+
 db.$client.close();
 console.log(`Seeded UI test data in ${dataDir}`);

@@ -38,6 +38,7 @@ function fakeBrowser(
         waitFor: async () => true,
         scroll: async () => {},
         safeClick: async () => {},
+        jsonResponses: async () => [],
         get pagesViewed() {
           return viewed;
         },
@@ -78,6 +79,77 @@ describe("logged-in adapters (saved HTML)", () => {
       remotePolicy: "remote",
     });
     expect(offers[0]!.sourceUrl).toBe("https://www.linkedin.com/jobs/view/4123456789");
+  });
+
+  it("LinkedIn: reads the cards of the new search-results page (no /jobs/view/ links)", async () => {
+    const browser = fakeBrowser({ "linkedin.com/jobs/search": lf("linkedin-search-results.html") });
+    const ctx = fixtureContext({}, { sourceId: "linkedin", browser });
+    const offers = await adapter("linkedin").fetchOffers(ctx);
+    assertNormalized(offers);
+    const ids = [...new Set(offers.map((o) => o.externalId))];
+    expect(ids).toEqual(["linkedin:4100000001", "linkedin:4100000002", "linkedin:4100000003"]);
+    const [northwind, contoso, fabrikam] = offers;
+    expect(northwind).toMatchObject({
+      title: "Senior AI Engineer",
+      companyName: "Northwind Labs",
+      location: "Reino Unido (En remoto)",
+      remotePolicy: "remote",
+      sourceUrl: "https://www.linkedin.com/jobs/view/4100000001",
+      compensation: { min: 9_800_000, max: 11_500_000, currency: "GBP", period: "year" },
+    });
+    expect(contoso).toMatchObject({ remotePolicy: "remote", compensation: null });
+    expect(fabrikam!.remotePolicy).toBe("hybrid");
+    const now = ctx.now().getTime();
+    expect(now - northwind!.postedAt!.getTime()).toBe(86_400_000);
+    expect(now - contoso!.postedAt!.getTime()).toBe(14 * 86_400_000);
+  });
+
+  it("Mercor: reads the explore cards that link to ?listingId=", async () => {
+    const browser = fakeBrowser({ "mercor.com/explore": lf("mercor-explore-cards.html") });
+    const offers = await adapter("mercor").fetchOffers(
+      fixtureContext({}, { sourceId: "mercor", browser }),
+    );
+    assertNormalized(offers);
+    expect(offers.map((o) => o.externalId)).toEqual([
+      "mercor:list_AAAFixture0001",
+      "mercor:list_AAAFixture0002",
+    ]);
+    expect(offers[0]).toMatchObject({
+      title: "AI Evaluation Engineer (LLM agents)",
+      companyName: "Mercor",
+      remotePolicy: "remote",
+      engagementType: "contract",
+      sourceUrl: "https://work.mercor.com/explore?listingId=list_AAAFixture0001",
+      compensation: { min: 9000, max: 12000, currency: "USD", period: "hour" },
+    });
+    expect(offers[1]!.regions).toEqual(["US"]);
+  });
+
+  it("Wellfound: reads job rows with company, location, salary and age", async () => {
+    const browser = fakeBrowser({ "wellfound.com/jobs": lf("wellfound-job-rows.html") });
+    const ctx = fixtureContext({}, { sourceId: "wellfound", browser });
+    const offers = await adapter("wellfound").fetchOffers(ctx);
+    assertNormalized(offers);
+    expect(offers.map((o) => o.externalId)).toEqual(["wellfound:7100001", "wellfound:7100002"]);
+    expect(offers[0]).toMatchObject({
+      title: "Senior AI Engineer",
+      companyName: "Woodgrove AI",
+      location: "Remote only, Spain",
+      remotePolicy: "remote",
+      sourceUrl: "https://wellfound.com/jobs/7100001",
+      compensation: { min: 6_000_000, max: 8_000_000, currency: "EUR", period: "year" },
+    });
+    expect(offers[1]).toMatchObject({ companyName: "Fabrikam", remotePolicy: "onsite" });
+    const now = ctx.now().getTime();
+    expect(now - offers[0]!.postedAt!.getTime()).toBe(86_400_000);
+    expect(now - offers[1]!.postedAt!.getTime()).toBe(3 * 86_400_000);
+  });
+
+  it("fails clearly on a bot check instead of reporting 0 jobs", async () => {
+    const browser = fakeBrowser({ "malt.es/dashboard": lf("bot-check.html") });
+    await expect(
+      adapter("malt").fetchOffers(fixtureContext({}, { sourceId: "malt", browser })),
+    ).rejects.toThrow(/bot check.*email alerts/);
   });
 
   it("Upwork: reads job tiles with budgets", async () => {

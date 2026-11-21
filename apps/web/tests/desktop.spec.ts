@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 test("the Desktop card is hidden in a normal browser", async ({ page }) => {
-  await page.goto("/settings");
-  await expect(page.getByRole("form", { name: "General settings" })).toBeVisible();
+  await page.goto("/settings?tab=general");
+  await expect(page.getByRole("tab", { name: "General" })).toHaveAttribute("data-state", "active");
   await expect(page.getByTestId("desktop-card")).toHaveCount(0);
 });
 
@@ -60,7 +60,7 @@ test("inside the macOS app the Desktop card drives the bridge", async ({ page })
       },
     };
   });
-  await page.goto("/settings");
+  await page.goto("/settings?tab=general");
   const card = page.getByTestId("desktop-card");
   await expect(card).toContainText("Job Radar 0.1.0 for macOS");
   await expect(page.getByTestId("claude-path-status")).toContainText(
@@ -124,7 +124,7 @@ test("with Google Chrome installed the app uses it and offers to remove the down
       openLogs: async () => {},
     };
   });
-  await page.goto("/settings");
+  await page.goto("/settings?tab=general");
   await expect(page.getByTestId("desktop-browser")).toContainText("Google sign-in works");
   const card = page.getByTestId("desktop-card");
   await expect(card.getByRole("button", { name: "Download Chromium" })).toHaveCount(0);

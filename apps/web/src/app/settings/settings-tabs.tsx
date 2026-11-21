@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { TimePicker } from "@/components/date-time-pickers";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,24 +23,21 @@ import {
   createCustomStage,
   rescoreOpenOffers,
   saveEmailSource,
-  saveExcludedCompanies,
   saveProfileText,
-  saveSettings,
   type ActionResult,
-  type SettingsForm,
-  type SettingsValues,
 } from "./actions";
+import { CvVariantsCard, type CvVariantView } from "./cv-variants-card";
+import { MailAccountsCard, type MailAccountView } from "./mail-accounts-card";
+import { PreferencesPanel, type PreferencesPanelProps } from "./preferences-panel";
 import { LearningPanel, type LearningData } from "./learning-panel";
 import { SessionsPanel, type SessionView } from "./sessions-panel";
 
 interface Props {
   initialTab?: string;
-  timeZone: string;
   cv: string;
-  preferences: string;
   validationErrors: string[];
-  form: SettingsValues | null;
-  excludedCompanies: string[];
+  preferencesPanel: PreferencesPanelProps;
+  cvVariants: { variants: CvVariantView[]; errors: string[]; staleCount: number };
   status: {
     worker: boolean;
     profile: { status: string; loadedAt: string | null; errors: string[] } | null;
@@ -66,6 +62,7 @@ interface Props {
     lookbackDays: number;
   };
   stages: { key: string; label: string; custom: boolean }[];
+  mail: { accounts: MailAccountView[]; workerRunning: boolean; checkMinutes: number };
   sessions: SessionView[];
   learning: LearningData;
 }
@@ -127,260 +124,18 @@ function Field({
   );
 }
 
-function TimeField({
-  label,
-  name,
-  defaultValue,
-}: {
-  label: string;
-  name: string;
-  defaultValue: string;
-}) {
-  return (
-    <div className="space-y-1">
-      <Label asChild>
-        <span>{label}</span>
-      </Label>
-      <TimePicker name={name} defaultValue={defaultValue} aria-label={label} />
-    </div>
-  );
-}
-
-function GeneralForm({ form, timeZone }: { form: SettingsValues; timeZone: string }) {
-  const { pending, run, errors } = useAction();
-  const submit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = Object.fromEntries(new FormData(e.currentTarget)) as unknown as SettingsForm;
-    run(() => saveSettings(fd));
-  };
-  return (
-    <form onSubmit={submit} className="space-y-6" aria-label="General settings">
-      <Errors errors={errors} />
-      <Card>
-        <CardHeader>
-          <CardTitle>Rates and capacity</CardTitle>
-          <CardDescription>Offers stating less than your minimum are capped at 30.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-3">
-          <Field
-            label="Minimum hourly rate (EUR)"
-            name="minEUR"
-            type="number"
-            step="1"
-            defaultValue={form.minEUR}
-          />
-          <Field
-            label="Minimum hourly rate (USD)"
-            name="minUSD"
-            type="number"
-            step="1"
-            defaultValue={form.minUSD}
-          />
-          <Field
-            label="Minimum hourly rate (GBP)"
-            name="minGBP"
-            type="number"
-            step="1"
-            defaultValue={form.minGBP}
-          />
-          <Field
-            label="Minimum day rate (EUR)"
-            name="minDailyEUR"
-            type="number"
-            step="1"
-            defaultValue={form.minDailyEUR}
-          />
-          <Field
-            label="Weekly capacity (hours)"
-            name="capacity"
-            type="number"
-            min={1}
-            max={80}
-            defaultValue={form.capacity}
-          />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Scoring</CardTitle>
-          <CardDescription>
-            Models run through your Claude Code login. Caps reset at midnight ({timeZone}).
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-3">
-          <Field
-            label="Strong threshold"
-            name="strong"
-            type="number"
-            min={1}
-            max={100}
-            defaultValue={form.strong}
-          />
-          <Field
-            label="Possible threshold"
-            name="possible"
-            type="number"
-            min={0}
-            max={99}
-            defaultValue={form.possible}
-          />
-          <div />
-          <Field label="Scoring model" name="scoringModel" defaultValue={form.scoringModel} />
-          <Field label="Drafting model" name="draftingModel" defaultValue={form.draftingModel} />
-          <div />
-          <Field
-            label="Daily scoring cap"
-            name="scoringCap"
-            type="number"
-            min={0}
-            defaultValue={form.scoringCap}
-          />
-          <Field
-            label="Daily draft cap"
-            name="draftsCap"
-            type="number"
-            min={0}
-            defaultValue={form.draftsCap}
-          />
-          <Field
-            label="Daily company research cap"
-            name="researchCap"
-            type="number"
-            min={0}
-            max={100}
-            defaultValue={form.researchCap}
-          />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Company research</CardTitle>
-          <CardDescription>
-            Claude searches the web and reads public pages about a company; every fact links to its
-            source. It runs when you click Research company, when you shortlist an offer and, if
-            enabled below, for strong offers. Profiles are reused for 30 days.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              name="autoResearch"
-              defaultChecked={form.autoResearch}
-              className="size-4 accent-foreground"
-            />
-            Research the company of every strong offer automatically
-          </label>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Notifications</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-3">
-          <TimeField
-            label="Quiet hours start"
-            name="quietStart"
-            defaultValue={String(form.quietStart)}
-          />
-          <TimeField label="Quiet hours end" name="quietEnd" defaultValue={String(form.quietEnd)} />
-          <TimeField
-            label="Daily digest time"
-            name="digestTime"
-            defaultValue={String(form.digestTime)}
-          />
-          <div className="space-y-1 sm:col-span-3">
-            <Label htmlFor="followUpDays">Follow-up reminders (days without news)</Label>
-            <Input
-              id="followUpDays"
-              name="followUpDays"
-              defaultValue={form.followUpDays}
-              placeholder="7, 14"
-              className="sm:w-60"
-            />
-            <p className="text-xs text-muted-foreground">
-              Telegram reminds you to follow up when an application stays in Applied this many days
-              with no update. Comma-separated, up to 5. Leave empty to turn off.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-      <div className="flex gap-2">
-        <Button type="submit" disabled={pending}>
-          Save settings
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-function ExcludedCompanies({ companies }: { companies: string[] }) {
-  const [text, setText] = useState(companies.join("\n"));
-  const { pending, run, errors } = useAction();
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Hidden companies</CardTitle>
-        <CardDescription>
-          One company per line. Their offers are hidden from Offers and never scored. Matching
-          ignores case and uses whole words, so &quot;Crossover&quot; also hides &quot;Crossover for
-          Work&quot;. Remove a line to show that company again.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <Errors errors={errors} />
-        <Label htmlFor="excluded-companies" className="sr-only">
-          Hidden companies
-        </Label>
-        <Textarea
-          id="excluded-companies"
-          rows={6}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={"Crossover\nRevature"}
-        />
-        <Button disabled={pending} onClick={() => run(() => saveExcludedCompanies(text))}>
-          Save hidden companies
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ProfileFiles({ cv, preferences }: { cv: string; preferences: string }) {
+function ProfileFiles({ cv, cvVariants }: { cv: string; cvVariants: Props["cvVariants"] }) {
   const [cvText, setCv] = useState(cv);
-  const [prefsText, setPrefs] = useState(preferences);
   const { pending, run, errors } = useAction();
   return (
     <div className="space-y-4">
       <Errors errors={errors} />
       <Card>
         <CardHeader>
-          <CardTitle>preferences.yaml</CardTitle>
-          <CardDescription>
-            Validated before saving; an invalid file is never written.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <Textarea
-            value={prefsText}
-            onChange={(e) => setPrefs(e.target.value)}
-            className="h-96 font-mono text-xs"
-            spellCheck={false}
-            aria-label="preferences.yaml"
-          />
-          <Button
-            disabled={pending}
-            onClick={() => run(() => saveProfileText({ preferences: prefsText }))}
-          >
-            Save preferences
-          </Button>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
           <CardTitle>CV (Markdown)</CardTitle>
-          <CardDescription>Drafts only use facts from this CV.</CardDescription>
+          <CardDescription>
+            Drafts only use facts from this CV. Preferences are edited in the Preferences tab.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
           <Textarea
@@ -394,6 +149,7 @@ function ProfileFiles({ cv, preferences }: { cv: string; preferences: string }) 
           </Button>
         </CardContent>
       </Card>
+      <CvVariantsCard {...cvVariants} />
     </div>
   );
 }
@@ -606,36 +362,32 @@ function StatusPanel({
 
 export function SettingsTabs(props: Props) {
   return (
-    <Tabs defaultValue={props.initialTab ?? "general"}>
+    <Tabs defaultValue={props.initialTab ?? "preferences"}>
       <TabsList className="mb-4 flex-wrap">
+        <TabsTrigger value="preferences">Preferences</TabsTrigger>
         <TabsTrigger value="general">General</TabsTrigger>
         <TabsTrigger value="learning">Learning</TabsTrigger>
         <TabsTrigger value="profile">Profile files</TabsTrigger>
+        <TabsTrigger value="email">Email</TabsTrigger>
         <TabsTrigger value="sources">Sources</TabsTrigger>
         <TabsTrigger value="sessions">Sessions</TabsTrigger>
         <TabsTrigger value="stages">Stages</TabsTrigger>
         <TabsTrigger value="status">Status</TabsTrigger>
       </TabsList>
+      <TabsContent value="preferences">
+        <PreferencesPanel {...props.preferencesPanel} />
+      </TabsContent>
       <TabsContent value="general" className="space-y-6">
         <DesktopCard />
-        {props.form ? (
-          <div className="space-y-6">
-            <ExcludedCompanies companies={props.excludedCompanies} />
-            <GeneralForm form={props.form} timeZone={props.timeZone} />
-          </div>
-        ) : (
-          <Errors
-            errors={
-              props.validationErrors.length ? props.validationErrors : ["Profile files are missing"]
-            }
-          />
-        )}
       </TabsContent>
       <TabsContent value="learning">
         <LearningPanel data={props.learning} />
       </TabsContent>
       <TabsContent value="profile">
-        <ProfileFiles cv={props.cv} preferences={props.preferences} />
+        <ProfileFiles cv={props.cv} cvVariants={props.cvVariants} />
+      </TabsContent>
+      <TabsContent value="email">
+        <MailAccountsCard {...props.mail} />
       </TabsContent>
       <TabsContent value="sources">
         <EmailForm email={props.email} />

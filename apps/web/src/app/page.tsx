@@ -80,7 +80,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
 
   const m = dashboardMetrics(d, { days: period, now: new Date() });
   // All-time: patterns need more data than one period usually has.
-  const patterns = responsePatterns(d);
+  const allPatterns = responsePatterns(d);
+  // "CV sent" only means something once some application recorded which CV went out.
+  const patterns = {
+    ...allPatterns,
+    dimensions: allPatterns.dimensions.filter(
+      (dim) => dim.key !== "cv" || dim.rows.some((r) => r.value !== "Unknown"),
+    ),
+  };
   const sources = listSources(d).map((s) => ({ id: s.id, name: s.name }));
   const sourceName = (id: string) => sources.find((s) => s.id === id)?.name ?? id;
   const stages = listStages(d);

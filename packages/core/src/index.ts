@@ -15,3 +15,4 @@ export { SAMPLE_LEARNING_OPS } from "./learning/sample";
 export * from "./learning/suggestions";
 export * from "./research/index";
 export { SAMPLE_RESEARCH } from "./research/sample";
+export * from "./mail/index";

@@ -17,6 +17,7 @@ import { useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ScoreBadge } from "@/components/score-badge";
 import { Badge } from "@/components/ui/badge";
+import type { EmailView } from "@/lib/emails";
 import { cn } from "@/lib/utils";
 import { moveApplication } from "./actions";
 import { ApplicationSheet } from "./application-sheet";
@@ -59,6 +60,10 @@ export interface CardData {
   engagement: EngagementData | null;
   canPrepare: boolean;
   prep: PrepData | null;
+  /** CV sent (cv-variants): a variant or the master CV; null when unknown. */
+  cv: { id: string; name: string } | null;
+  /** Emails matched to this application (application-emails), oldest first. */
+  emails: EmailView[];
 }
 
 export interface PrepData {
@@ -142,6 +147,7 @@ function Card({ card, onOpen }: { card: CardData; onOpen: () => void }) {
           <Badge variant="secondary">{card.engagement.weeklyHours} h/wk</Badge>
         ) : null}
         {card.staleNoResponse ? <Badge variant="outline">14 days, no response?</Badge> : null}
+        {card.emails.some((e) => e.status === "suggested") ? <Badge>Email to review</Badge> : null}
       </div>
     </div>
   );
@@ -181,7 +187,15 @@ function Column({
   );
 }
 
-export function Board({ stages, cards }: { stages: StageData[]; cards: CardData[] }) {
+export function Board({
+  stages,
+  cards,
+  cvOptions = [],
+}: {
+  stages: StageData[];
+  cards: CardData[];
+  cvOptions?: { id: string; name: string }[];
+}) {
   const [optimistic, moveOptimistic] = useOptimistic(
     cards,
     (state, move: { id: number; stage: string }) =>
@@ -232,7 +246,12 @@ export function Board({ stages, cards }: { stages: StageData[]; cards: CardData[
           ))}
         </div>
       </DndContext>
-      <ApplicationSheet card={open} stages={stages} onClose={() => setOpenId(null)} />
+      <ApplicationSheet
+        card={open}
+        stages={stages}
+        cvOptions={cvOptions}
+        onClose={() => setOpenId(null)}
+      />
     </>
   );
 }

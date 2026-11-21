@@ -2,16 +2,24 @@
 // exposed to the internet. The bot only talks to the owner's chat id.
 import { appTimeZone, isWithinWindow } from "@job-radar/core";
 import {
+  getApplicationEmail,
   getOffer,
   notificationsWithTelegramStatus,
   setTelegramStatus,
   type Db,
   type Notification,
 } from "@job-radar/db";
-import { Bot, GrammyError, type Context } from "grammy";
+import { Bot, GrammyError, HttpError, InlineKeyboard, type Context } from "grammy";
 import { errorMessage, log } from "../log";
 import type { ProfileService } from "../profile-service";
 import { buildDigest, escapeHtml } from "./digest";
+
+/** A Telegram failure for the log: the API's description, or a network error with its cause. */
+export function telegramError(err: unknown): string {
+  if (err instanceof GrammyError) return err.description;
+  if (err instanceof HttpError) return `${errorMessage(err)} (${errorMessage(err.error)})`;
+  return errorMessage(err);
+}
 
 /** Kinds that go to Telegram; the rest stay in the in-app center only. */
 export const TELEGRAM_KINDS = new Set<Notification["kind"]>([
@@ -21,7 +29,25 @@ export const TELEGRAM_KINDS = new Set<Notification["kind"]>([
   "source_stopped",
   "digest",
   "llm_unavailable",
+  "email_next_step",
+  "email_offer",
+  "email_rejection",
 ]);
+
+/** The email actions the bot's buttons call (MailService). */
+export interface MailActions {
+  undo(emailId: number): { ok: boolean; message: string };
+  apply(emailId: number): { ok: boolean; message: string };
+  dismiss(emailId: number): { ok: boolean; message: string };
+}
+
+/** "email:<id>:<kind>" dedupe keys carry the email id for the buttons. */
+export function emailIdOf(n: Pick<Notification, "dedupeKey">): number | null {
+  const m = /^email:(\d+):/.exec(n.dedupeKey ?? "");
+  return m ? Number(m[1]) : null;
+}
+
+const CALLBACK = /^em:(undo|apply|dismiss):(\d+)$/;
 /** Sent even during quiet hours. */
 const URGENT_KINDS = new Set<Notification["kind"]>(["interview_reminder"]);
 
@@ -42,6 +68,7 @@ export class TelegramService {
   readonly bot: Bot;
   private readonly owner: string;
   private polling = false;
+  private mail: MailActions | null = null;
 
   constructor(private readonly o: TelegramOptions) {
     this.owner = String(o.ownerChatId).trim();
@@ -65,6 +92,8 @@ export class TelegramService {
     );
     this.bot.command("digest", async (ctx) => this.replyDigest(ctx));
     this.bot.command("status", (ctx) => ctx.reply(this.statusText()));
+    // Email buttons. The owner-only middleware above already dropped other chats.
+    this.bot.callbackQuery(CALLBACK, async (ctx) => this.onEmailButton(ctx));
     this.bot.catch((err) => log.error("telegram bot error", { error: errorMessage(err.error) }));
   }
 
@@ -86,6 +115,52 @@ export class TelegramService {
 
   private stopping = false;
 
+  setMail(mail: MailActions): void {
+    this.mail = mail;
+  }
+
+  /** Undo / Apply / Dismiss from an email alert; idempotent through the email's status. */
+  async onEmailButton(ctx: Context): Promise<void> {
+    const m = CALLBACK.exec(ctx.callbackQuery?.data ?? "");
+    if (!m || !this.mail) {
+      await ctx.answerCallbackQuery({ text: "Job Radar is not ready" });
+      return;
+    }
+    const action = m[1] as "undo" | "apply" | "dismiss";
+    const emailId = Number(m[2]);
+    let result: { ok: boolean; message: string };
+    try {
+      result = this.mail[action](emailId);
+    } catch (err) {
+      result = { ok: false, message: errorMessage(err) };
+    }
+    await ctx.answerCallbackQuery({ text: result.message });
+    if (!result.ok) return;
+    const text = ctx.callbackQuery?.message?.text ?? "";
+    await ctx
+      .editMessageText(`${escapeHtml(text)}\n\n<b>${escapeHtml(result.message)}</b>`, {
+        parse_mode: "HTML",
+        link_preview_options: { is_disabled: true },
+      })
+      .catch((err: unknown) => log.warn("telegram edit failed", { error: telegramError(err) }));
+  }
+
+  /** Buttons for an email alert, from the email's current status. */
+  keyboardFor(n: Notification): InlineKeyboard | undefined {
+    const emailId = emailIdOf(n);
+    if (emailId === null) return undefined;
+    const email = getApplicationEmail(this.o.db, emailId);
+    if (!email) return undefined;
+    const kb = new InlineKeyboard();
+    if (email.status === "auto_applied") kb.text("Undo", `em:undo:${emailId}`);
+    else if (email.status === "suggested") {
+      const single = email.applicationId !== null || email.candidates.length === 1;
+      if (single) kb.text("Apply", `em:apply:${emailId}`);
+      kb.text("Dismiss", `em:dismiss:${emailId}`);
+    } else return undefined;
+    return kb;
+  }
+
   /** Long polling; no webhook, no inbound port. */
   start(): void {
     if (this.polling) return;
@@ -97,7 +172,7 @@ export class TelegramService {
         this.polling = false;
         // Stopping on purpose (Quit, restart) aborts the long poll: not an error.
         if (this.stopping) log.info("telegram polling stopped");
-        else log.error("telegram polling stopped", { error: errorMessage(err) });
+        else log.error("telegram polling stopped", { error: telegramError(err) });
       });
   }
 
@@ -107,10 +182,11 @@ export class TelegramService {
     this.polling = false;
   }
 
-  private async send(html: string): Promise<void> {
+  private async send(html: string, keyboard?: InlineKeyboard): Promise<void> {
     await this.bot.api.sendMessage(this.owner, html, {
       parse_mode: "HTML",
       link_preview_options: { is_disabled: true },
+      ...(keyboard ? { reply_markup: keyboard } : {}),
     });
   }
 
@@ -119,7 +195,11 @@ export class TelegramService {
     if (n.offerId) {
       const offer = getOffer(this.o.db, n.offerId);
       lines.push(`<a href="${this.o.webBaseUrl}/offers/${n.offerId}">Open in Job Radar</a>`);
-      if (offer) lines.push(`<a href="${escapeHtml(offer.sourceUrl)}">Source page</a>`);
+      if (offer && emailIdOf(n) === null) {
+        lines.push(`<a href="${escapeHtml(offer.sourceUrl)}">Source page</a>`);
+      }
+    } else if (emailIdOf(n) !== null) {
+      lines.push(`<a href="${this.o.webBaseUrl}/pipeline">Open the pipeline</a>`);
     }
     return lines.filter(Boolean).join("\n");
   }
@@ -135,13 +215,16 @@ export class TelegramService {
       return;
     }
     try {
-      await this.send(n.kind === "digest" ? this.digestHtml() : this.format(n));
+      await this.send(
+        n.kind === "digest" ? this.digestHtml() : this.format(n),
+        this.keyboardFor(n),
+      );
       setTelegramStatus(this.o.db, [n.id], "sent", this.now());
     } catch (err) {
       setTelegramStatus(this.o.db, [n.id], "failed");
       log.error("telegram send failed", {
         id: n.id,
-        error: err instanceof GrammyError ? err.description : errorMessage(err),
+        error: telegramError(err),
       });
     }
   }
@@ -169,7 +252,7 @@ export class TelegramService {
       );
       return held.length;
     } catch (err) {
-      log.error("telegram held digest failed", { error: errorMessage(err) });
+      log.error("telegram held digest failed", { error: telegramError(err) });
       return 0;
     }
   }

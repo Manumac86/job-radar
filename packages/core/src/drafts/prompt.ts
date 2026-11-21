@@ -1,5 +1,6 @@
 import { describeCompensation, type OfferForLlm } from "../offers/types";
 import type { Profile } from "../profile/schema";
+import type { CvVariant } from "../profile/variants";
 import { UNTRUSTED_DATA_RULES, wrapUntrusted } from "../llm/untrusted";
 import { companyProfileBlock, type CompanyProfileForPrompt } from "../research/prompt";
 import { offerForPrompt, profileForPrompt } from "../scoring/prompt";
@@ -26,15 +27,22 @@ export function buildDraftPrompt(
     serviceLines?: string[];
     previousMessage?: string | null;
     company?: CompanyProfileForPrompt | null;
+    cvVariant?: CvVariant | null;
   } = {},
 ): string {
+  const variant = options.cvVariant;
   return [
     "Candidate profile (trusted):",
     profileForPrompt(profile),
     "",
-    "Candidate CV (trusted, the only source of facts):",
+    variant
+      ? "Full CV (trusted, the only source of facts; facts may come from here):"
+      : "Candidate CV (trusted, the only source of facts):",
     profile.cv.slice(0, 10_000),
     "",
+    variant
+      ? `CV to emphasize (trusted): the owner will send the "${variant.name}" version of the CV with this application. Lead with the evidence this version highlights, and keep every fact grounded in the full CV above.\n${variant.text.slice(0, 10_000)}\n`
+      : "",
     options.serviceLines?.length
       ? `Matching service lines: ${options.serviceLines.join(", ")}\n`
       : "",

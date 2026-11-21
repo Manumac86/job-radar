@@ -19,6 +19,11 @@ export interface ProfileStatus {
   lastAttemptAt: string;
   errors: string[];
   dir: string;
+  /** "" with no CV variants; changes when any variant changes (cv-variants D3). */
+  variantsHash: string;
+  /** Variant files that were skipped (they never stop scoring). */
+  variantErrors: string[];
+  variants: { id: string; name: string; useFor: string }[];
 }
 
 /** Holds the current profile; scoring and drafting refuse to run while it is invalid. */
@@ -37,6 +42,9 @@ export class ProfileService {
       lastAttemptAt: new Date().toISOString(),
       errors: [],
       dir,
+      variantsHash: "",
+      variantErrors: [],
+      variants: [],
     };
   }
 
@@ -54,7 +62,16 @@ export class ProfileService {
         lastAttemptAt: now.toISOString(),
         errors: [],
         dir: this.dir,
+        variantsHash: result.variantsHash,
+        variantErrors: result.variantErrors,
+        variants: (result.profile.variants ?? []).map(({ id, name, useFor }) => ({
+          id,
+          name,
+          useFor,
+        })),
       };
+      if (result.variantErrors.length)
+        log.warn("some CV variants were skipped", { errors: result.variantErrors });
       recordProfileLoad(this.db, {
         loadedAt: now,
         status: "ok",
@@ -79,6 +96,9 @@ export class ProfileService {
         lastAttemptAt: now.toISOString(),
         errors: result.errors,
         dir: this.dir,
+        variantsHash: "",
+        variantErrors: [],
+        variants: [],
       };
       recordProfileLoad(this.db, { loadedAt: now, status: result.status, errors: result.errors });
       log.error("profile invalid; scoring paused", { errors: result.errors });
@@ -89,6 +109,11 @@ export class ProfileService {
   /** The loaded profile, or null when files are missing or invalid. */
   get(): Profile | null {
     return this.current;
+  }
+
+  /** Hash of the loaded CV variants; scores record it (cv-variants D3). */
+  variantsHash(): string {
+    return this.lastStatus.variantsHash;
   }
 
   status(): ProfileStatus {

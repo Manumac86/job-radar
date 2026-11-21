@@ -24,7 +24,9 @@ import {
   adapters,
   chooseBrowser,
   defaultProfileDir,
+  type ImapAccount,
   type PageReader,
+  type ReadOnlyImap,
 } from "@job-radar/sources";
 import cron from "node-cron";
 import { config } from "./config";
@@ -42,6 +44,7 @@ import { ScoringService } from "./scoring/service";
 import { sendFollowUpReminders, sendInterviewReminders, suggestNoResponse } from "./pipeline/jobs";
 import { PrepService } from "./pipeline/prep";
 import { LearningService } from "./learning/service";
+import { MailService } from "./mail/service";
 import { ResearchService } from "./research/service";
 import { ensureManualSource } from "./ingest/import";
 import { readSecretFile } from "./secrets";
@@ -49,7 +52,15 @@ import { readSecretFile } from "./secrets";
 export interface Worker extends Required<
   Pick<
     WorkerContext,
-    "notifier" | "scheduler" | "scoring" | "drafts" | "prep" | "learning" | "research" | "llm"
+    | "notifier"
+    | "scheduler"
+    | "scoring"
+    | "drafts"
+    | "prep"
+    | "learning"
+    | "research"
+    | "llm"
+    | "mail"
   >
 > {
   db: Db;
@@ -67,6 +78,7 @@ export function createWorker(
     llmClient?: LlmClient;
     researchClient?: ResearchClient;
     newPageReader?: () => PageReader;
+    mailConnect?: (account: ImapAccount) => ReadOnlyImap;
   } = {},
 ): Worker {
   const db = options.db ?? openDatabase();
@@ -123,6 +135,16 @@ export function createWorker(
     ...(options.newPageReader ? { newReader: options.newPageReader } : {}),
   });
   const prep = new PrepService({ db, profile, client, budget, notifier, research });
+  const mail = new MailService({
+    db,
+    profile,
+    notifier,
+    llm: { client, budget },
+    secretsDir: config.secretsDir,
+    onInterviewStage: (id) => void prep.autoPrepare(id),
+    ...(options.mailConnect ? { connect: options.mailConnect } : {}),
+  });
+  telegram?.setMail(mail);
   // After research, the company's open offers are rescored with the profile (design D6).
   // A profile without any sourced fact changes nothing, so it does not spend scoring calls.
   research.onFinished((row) => {
@@ -171,6 +193,7 @@ export function createWorker(
     prep,
     learning,
     research,
+    mail,
     llm: { client, budget },
     telegram,
     browser,
@@ -196,6 +219,7 @@ export function createWorker(
           () => {
             createDigestIfDue({ db, profile, notifier, webBaseUrl: config.webBaseUrl }, new Date());
             void telegram?.tick();
+            mail.tick();
           },
           { name: "notifications" },
         ),

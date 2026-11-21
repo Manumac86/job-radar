@@ -14,3 +14,4 @@ export * from "./queries/pipeline";
 export * from "./queries/dashboard";
 export * from "./queries/learning";
 export * from "./queries/research";
+export * from "./queries/mail";

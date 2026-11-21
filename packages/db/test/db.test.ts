@@ -1,4 +1,6 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { migrationsDir } from "../src/paths";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -251,5 +253,61 @@ describe("interrupted scoring", () => {
     setScoreStatus(db, o.id, "scoring");
     expect(resetInterruptedScoring(db)).toBe(1);
     expect(getOffer(db, o.id)?.scoreStatus).toBe("awaiting_score");
+  });
+});
+
+describe("cv-variants migration", () => {
+  const columns = (db: ReturnType<typeof openDatabase>, table: string) =>
+    (db.$client.prepare(`pragma table_info(${table})`).all() as { name: string }[]).map(
+      (c) => c.name,
+    );
+
+  it("adds the nullable CV columns to a fresh database", () => {
+    const db = memoryDb();
+    expect(columns(db, "scores")).toEqual(
+      expect.arrayContaining(["recommended_cv", "cv_reason", "cv_gaps", "cv_variants_hash"]),
+    );
+    expect(columns(db, "drafts")).toEqual(
+      expect.arrayContaining(["cv_variant", "cv_variant_name"]),
+    );
+    expect(columns(db, "applications")).toEqual(
+      expect.arrayContaining(["cv_variant", "cv_variant_name"]),
+    );
+  });
+
+  it("upgrades a database made with the previous migrations and keeps its rows", () => {
+    const dir = mkdtempSync(join(tmpdir(), "job-radar-db-"));
+    dirs.push(dir);
+    // A migrations folder that stops before 0004, as an older install had.
+    const old = join(dir, "migrations");
+    cpSync(migrationsDir(), old, { recursive: true });
+    const journalFile = join(old, "meta", "_journal.json");
+    const journal = JSON.parse(readFileSync(journalFile, "utf8")) as {
+      entries: { tag: string }[];
+    };
+    const cut = journal.entries.findIndex((e) => e.tag.startsWith("0004_"));
+    const before = journal.entries.slice(0, cut);
+    expect(before.length).toBe(4);
+    writeFileSync(journalFile, JSON.stringify({ ...journal, entries: before }));
+    const path = join(dir, "radar.sqlite");
+    const first = openDatabase({ path, migrate: false });
+    migrate(first, { migrationsFolder: old });
+    expect(columns(first, "scores")).not.toContain("recommended_cv");
+    seedSource(first);
+    const offer = seedOffer(first);
+    first.$client
+      .prepare(
+        `insert into scores (offer_id, overall, model_overall, skills_fit, seniority_fit, rate_fit,
+         location_fit, engagement_fit, score_class, rationale, model)
+         values (?, 80, 80, 80, 80, 80, 80, 80, 'strong', 'Fits well.', 'haiku')`,
+      )
+      .run(offer.id);
+    closeDatabase(first);
+
+    const upgraded = openDatabase({ path });
+    expect(columns(upgraded, "scores")).toContain("recommended_cv");
+    const [row] = scoreHistory(upgraded, offer.id);
+    expect(row).toMatchObject({ overall: 80, recommendedCv: null, cvGaps: null });
+    closeDatabase(upgraded);
   });
 });

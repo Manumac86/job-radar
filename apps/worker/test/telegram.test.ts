@@ -1,11 +1,13 @@
-import { getOffer, listNotifications } from "@job-radar/db";
+import { getOffer, insertApplicationEmail, listNotifications } from "@job-radar/db";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
 import { Notifier } from "../src/notifier";
 import { createDigestIfDue } from "../src/notifications/digest";
 import { strongMatchNotification } from "../src/notifications/messages";
-import { TelegramService } from "../src/notifications/telegram";
+import { HttpError } from "grammy";
+import { registerSecret } from "../src/log";
+import { TelegramService, telegramError } from "../src/notifications/telegram";
 import { seedScoredOffer, testContext } from "./helpers";
 
 const OWNER = "424242";
@@ -169,5 +171,108 @@ describe("Telegram alerts (mocked Bot API)", () => {
     const notifier = new Notifier(ctx.db);
     notifier.notify({ kind: "source_stopped", title: "x", body: "y" });
     expect(listNotifications(ctx.db)).toHaveLength(1);
+  });
+});
+
+describe("email alerts with buttons", () => {
+  function emailAlert(s: Awaited<ReturnType<typeof setup>>, status: "auto_applied" | "suggested") {
+    const email = insertApplicationEmail(s.db, {
+      messageId: `<${Math.random()}@x>`,
+      folder: "INBOX",
+      receivedAt: new Date("2026-11-15T10:00:00Z"),
+      fromAddress: "ana@northwind.example",
+      subject: "Next steps",
+      candidates: [7],
+      status,
+    })!;
+    const actions: string[] = [];
+    s.telegram.setMail({
+      undo: (id) => (
+        actions.push(`undo:${id}`),
+        { ok: actions.length === 1, message: actions.length === 1 ? "Undone" : "Already undone" }
+      ),
+      apply: (id) => (actions.push(`apply:${id}`), { ok: true, message: "Applied" }),
+      dismiss: (id) => (actions.push(`dismiss:${id}`), { ok: true, message: "Dismissed" }),
+    });
+    s.notifier.notify({
+      kind: "email_next_step",
+      title: "interview invitation from Northwind",
+      body: "Moved to Screening call.",
+      dedupeKey: `email:${email.id}:email_next_step`,
+    });
+    return { email, actions };
+  }
+
+  const callback = (chatId: number, data: string, updateId: number) => ({
+    update_id: updateId,
+    callback_query: {
+      id: String(updateId),
+      chat_instance: "1",
+      data,
+      from: { id: chatId, is_bot: false, first_name: "x" },
+      message: {
+        message_id: 5,
+        date: 0,
+        text: "interview invitation from Northwind\nMoved to Screening call.",
+        chat: { id: chatId, type: "private" as const, first_name: "x" },
+      },
+    },
+  });
+
+  it("an automatic change carries an Undo button that edits the message, once", async () => {
+    const s = await setup(() => new Date("2026-11-15T12:00:00Z"));
+    const { email, actions } = emailAlert(s, "auto_applied");
+    await s.flush(1);
+    const markup = sends(s.calls)[0]!.body["reply_markup"] as {
+      inline_keyboard: { text: string; callback_data: string }[][];
+    };
+    expect(markup.inline_keyboard[0]).toEqual([
+      { text: "Undo", callback_data: `em:undo:${email.id}` },
+    ]);
+    await s.telegram.bot.init();
+    await s.telegram.bot.handleUpdate(callback(Number(OWNER), `em:undo:${email.id}`, 10));
+    const edit = s.calls.find((c) => c.method === "editMessageText");
+    expect(edit?.body["text"]).toContain("<b>Undone</b>");
+    await s.telegram.bot.handleUpdate(callback(Number(OWNER), `em:undo:${email.id}`, 11));
+    const answers = s.calls.filter((c) => c.method === "answerCallbackQuery");
+    expect(answers.at(-1)?.body["text"]).toBe("Already undone");
+    expect(s.calls.filter((c) => c.method === "editMessageText")).toHaveLength(1);
+    expect(actions).toEqual([`undo:${email.id}`, `undo:${email.id}`]);
+  });
+
+  it("a suggestion carries Apply and Dismiss; a stranger's button press does nothing", async () => {
+    const s = await setup(() => new Date("2026-11-15T12:00:00Z"));
+    const { email, actions } = emailAlert(s, "suggested");
+    await s.flush(1);
+    const markup = sends(s.calls)[0]!.body["reply_markup"] as {
+      inline_keyboard: { text: string }[][];
+    };
+    expect(markup.inline_keyboard[0]!.map((b) => b.text)).toEqual(["Apply", "Dismiss"]);
+    await s.telegram.bot.init();
+    await s.telegram.bot.handleUpdate(callback(999, `em:apply:${email.id}`, 20));
+    expect(actions).toEqual([]);
+    expect(s.calls.some((c) => c.method === "answerCallbackQuery")).toBe(false);
+  });
+
+  it("email alerts are held during quiet hours", async () => {
+    const s = await setup(() => new Date("2026-11-15T23:30:00Z"));
+    emailAlert(s, "auto_applied");
+    await new Promise((r) => setTimeout(r, 100));
+    expect(sends(s.calls)).toHaveLength(0);
+    expect(listNotifications(s.db)[0]?.telegramStatus).toBe("held");
+  });
+});
+
+describe("telegramError", () => {
+  it("shows a network error's cause, with the bot token redacted", () => {
+    registerSecret("999:fake-bot-token");
+    const err = new HttpError(
+      "Network request for 'sendMessage' failed!",
+      new Error("request to https://api.telegram.org/bot999:fake-bot-token/sendMessage failed"),
+    );
+    const text = telegramError(err);
+    expect(text).toContain("Network request for 'sendMessage' failed!");
+    expect(text).toContain("bot[redacted]/sendMessage failed");
+    expect(text).not.toContain("fake-bot-token");
   });
 });

@@ -29,6 +29,20 @@
       "when": 1794918059952,
       "tag": "0003_company_research",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1795111308362,
+      "tag": "0004_cv_variants",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1795200741338,
+      "tag": "0005_application_emails",
+      "breakpoints": true
     }
   ]
 }

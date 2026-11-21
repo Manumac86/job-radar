@@ -20,11 +20,13 @@ import {
   type BrowserAccess,
   type PoliteFetcher,
   type SourceAdapter,
+  SIMPLEAPPLY_SOURCE_ID,
 } from "@job-radar/sources";
 import { errorMessage, log, redact } from "../log";
 import type { Notifier } from "../notifier";
 import type { ProfileService } from "../profile-service";
 import { ingestOffers } from "./pipeline";
+import { ingestSimpleApply, matchesFromOffers } from "./simpleapply-import";
 import { readSecretFile } from "../secrets";
 
 export const MAX_CONSECUTIVE_FAILURES = 5;
@@ -94,7 +96,11 @@ export async function executeRun(
         ? { ...deps.llm, model: profile.preferences.scoring.models.scoring }
         : undefined,
     });
-    const counts = ingestOffers(deps.db, sourceId, raw, profile.preferences, now(), addLine);
+    // SimpleApply matches may already be applied there: those get an application (design D4).
+    const counts =
+      sourceId === SIMPLEAPPLY_SOURCE_ID
+        ? ingestSimpleApply(deps.db, profile.preferences, matchesFromOffers(raw), now(), addLine)
+        : ingestOffers(deps.db, sourceId, raw, profile.preferences, now(), addLine);
     addLine(
       `found ${counts.found}, new ${counts.newCount}, filtered ${counts.filtered}, duplicates ${counts.duplicates}, already known ${counts.updated}${counts.invalid ? `, invalid ${counts.invalid}` : ""}`,
     );

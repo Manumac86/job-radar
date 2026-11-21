@@ -11,6 +11,7 @@ const worker = createWorker(
         llmClient: testing.llmClient,
         researchClient: testing.researchClient,
         newPageReader: testing.newPageReader,
+        mailConnect: testing.mailConnect,
       }
     : {},
 );

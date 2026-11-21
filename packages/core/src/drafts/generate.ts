@@ -1,6 +1,7 @@
 import { callStructured, type StructuredDeps } from "../llm/structured";
 import type { OfferForLlm } from "../offers/types";
 import type { Profile } from "../profile/schema";
+import type { CvVariant } from "../profile/variants";
 import type { CompanyProfileForPrompt } from "../research/prompt";
 import { normalizeSourceUrl } from "../research/urls";
 import type { CompanyProfile } from "../research/schema";
@@ -15,6 +16,8 @@ export interface DraftOptions {
   maxWords?: number;
   model?: string;
   company?: CompanyProfileForPrompt | null;
+  /** The CV version the owner will send (cv-variants D4); facts still come from the master CV. */
+  cvVariant?: CvVariant | null;
 }
 
 /** Every source URL in the profile, normalized. */

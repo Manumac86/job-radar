@@ -15,6 +15,13 @@ describe("window URL policy", () => {
     expect(decideNavigation("javascript:alert(1)", 3300)).toBe("deny");
     expect(isExternalAllowed("smb://server/share")).toBe(false);
   });
+
+  it("hands Apple Mail message links to Mail, and nothing else on that scheme", () => {
+    expect(decideNavigation("message://%3Cabc.123%40mail.example%3E", 3300)).toBe("external");
+    expect(isExternalAllowed("message://%3Cabc%40x%3E/../../etc")).toBe(false);
+    expect(isExternalAllowed("message:compose")).toBe(false);
+    expect(isExternalAllowed("message://%3C%3E")).toBe(false);
+  });
 });
 
 const summary = (s: Partial<StatusSummary> = {}): StatusSummary => ({

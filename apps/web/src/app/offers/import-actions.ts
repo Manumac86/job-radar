@@ -58,3 +58,34 @@ export async function importOfferFromLink(
     message: applicationId ? `${what} and marked as applied` : `${what}; scoring it now`,
   };
 }
+
+export interface CsvImportCounts {
+  found: number;
+  new: number;
+  duplicates: number;
+  filtered: number;
+  invalid: number;
+  applications: number;
+}
+
+export type CsvImportResult = { ok: true; counts: CsvImportCounts } | { ok: false; error: string };
+
+const MAX_CSV_BYTES = 5 * 1024 * 1024;
+
+/** Offers → Import → SimpleApply CSV: the file's text goes to the worker; nothing is fetched. */
+export async function importSimpleApplyCsv(form: FormData): Promise<CsvImportResult> {
+  const file = form.get("file");
+  if (!(file instanceof File) || file.size === 0)
+    return { ok: false, error: "Choose the CSV file exported from SimpleApply" };
+  if (file.size > MAX_CSV_BYTES) return { ok: false, error: "The file is larger than 5 MB" };
+  const res = await workerFetch<CsvImportCounts>("/offers/import-csv", {
+    method: "POST",
+    headers: { "content-type": "text/csv" },
+    body: await file.text(),
+  });
+  if (!res.ok) return { ok: false, error: res.error };
+  revalidatePath("/offers");
+  revalidatePath("/pipeline");
+  revalidatePath("/");
+  return { ok: true, counts: res.data };
+}

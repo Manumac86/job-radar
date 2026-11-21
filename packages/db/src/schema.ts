@@ -13,12 +13,16 @@ export const SOURCE_TYPES = [
   "hn_hiring",
   "remoteok",
   "weworkremotely",
+  /** Darwin Recruitment public job feed (WordPress Job Manager RSS). */
+  "darwin",
   "email_alerts",
   "malt",
   "wellfound",
   "mercor",
   "upwork",
   "linkedin",
+  /** SimpleApply: CSV import and the logged-in dashboard reader (simpleapply-source). */
+  "simpleapply",
   /** Offers the owner added from a link (Offers → Add from link); never polled. */
   "manual",
   "fake",
@@ -114,8 +118,38 @@ export const NOTIFICATION_KINDS = [
   "learned_preferences",
   "digest",
   "llm_unavailable",
+  "email_next_step",
+  "email_offer",
+  "email_rejection",
 ] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
+
+export const TRANSITION_SOURCES = ["manual", "email"] as const;
+export type TransitionSource = (typeof TRANSITION_SOURCES)[number];
+
+export const EMAIL_CATEGORIES = [
+  "rejection",
+  "interview_invitation",
+  "take_home",
+  "offer",
+  "information_request",
+  "acknowledgement",
+  "other",
+] as const;
+export type EmailCategory = (typeof EMAIL_CATEGORIES)[number];
+export const EMAIL_CONFIDENCES = ["high", "medium", "low"] as const;
+export type EmailConfidence = (typeof EMAIL_CONFIDENCES)[number];
+export const EMAIL_STATUSES = [
+  "queued",
+  "auto_applied",
+  "suggested",
+  "applied",
+  "dismissed",
+  "undone",
+  "timeline_only",
+] as const;
+export type EmailStatus = (typeof EMAIL_STATUSES)[number];
+export const MAIL_ACCOUNT_STATUSES = ["new", "ok", "failed"] as const;
 
 export const TELEGRAM_STATUSES = ["pending", "held", "sent", "skipped", "failed"] as const;
 export type TelegramStatus = (typeof TELEGRAM_STATUSES)[number];
@@ -306,6 +340,13 @@ export const scores = sqliteTable(
     redFlags: text("red_flags", { mode: "json" }).$type<string[]>().notNull().default([]),
     serviceLines: text("service_lines", { mode: "json" }).$type<string[]>().notNull().default([]),
     isLeadership: integer("is_leadership", { mode: "boolean" }).notNull().default(false),
+    /** CV variant recommended for this offer (cv-variants D2); null without variants. */
+    recommendedCv: text("recommended_cv"),
+    cvReason: text("cv_reason"),
+    /** Offer requirements the master CV supports but the recommended variant does not show. */
+    cvGaps: text("cv_gaps", { mode: "json" }).$type<string[]>(),
+    /** Hash of the variants this score saw, to offer a refresh after they change. */
+    cvVariantsHash: text("cv_variants_hash"),
     model: text("model").notNull(),
     createdAt: createdAt(),
   },
@@ -341,6 +382,9 @@ export const drafts = sqliteTable(
       .notNull()
       .default([]),
     instruction: text("instruction"),
+    /** CV variant the draft was written for (cv-variants D4), with its name at the time. */
+    cvVariant: text("cv_variant"),
+    cvVariantName: text("cv_variant_name"),
     model: text("model").notNull(),
     createdAt: createdAt(),
   },
@@ -371,6 +415,10 @@ export const applications = sqliteTable(
     firstResponseAt: integer("first_response_at", { mode: "timestamp_ms" }),
     closedAt: integer("closed_at", { mode: "timestamp_ms" }),
     noResponseSuggestedAt: integer("no_response_suggested_at", { mode: "timestamp_ms" }),
+    /** CV sent: a variant id or "master" (cv-variants D5); null means unknown. */
+    cvVariant: text("cv_variant"),
+    /** The variant's name when sent, so deleted variants still read well. */
+    cvVariantName: text("cv_variant_name"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -390,6 +438,10 @@ export const stageTransitions = sqliteTable(
     fromStage: text("from_stage"),
     toStage: text("to_stage").notNull(),
     note: text("note"),
+    /** "manual" or "email" (application-emails D5). */
+    source: text("source", { enum: TRANSITION_SOURCES }).notNull().default("manual"),
+    /** The application email that made this change, when source is "email". */
+    emailId: integer("email_id"),
     at: integer("at", { mode: "timestamp_ms" }).notNull().default(now),
   },
   (t) => [index("stage_transitions_app_idx").on(t.applicationId, t.at)],
@@ -630,4 +682,86 @@ export const companyResearch = sqliteTable(
     createdAt: createdAt(),
   },
   (t) => [index("company_research_company_idx").on(t.companyId, t.status)],
+);
+
+/** Owner's IMAP mailboxes read for replies (application-emails D1). Passwords live in secrets/. */
+export const mailAccounts = sqliteTable("mail_accounts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  label: text("label").notNull(),
+  address: text("address").notNull(),
+  host: text("host").notNull(),
+  port: integer("port").notNull().default(993),
+  folders: text("folders", { mode: "json" }).$type<string[]>().notNull().default(["INBOX"]),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  status: text("status", { enum: MAIL_ACCOUNT_STATUSES }).notNull().default("new"),
+  lastError: text("last_error"),
+  lastCheckedAt: integer("last_checked_at", { mode: "timestamp_ms" }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+/** Where reading stopped in each folder (IMAP UIDVALIDITY + last UID). */
+export const mailCursors = sqliteTable(
+  "mail_cursors",
+  {
+    accountId: integer("account_id")
+      .notNull()
+      .references(() => mailAccounts.id, { onDelete: "cascade" }),
+    folder: text("folder").notNull(),
+    uidValidity: text("uid_validity").notNull(),
+    lastUid: integer("last_uid").notNull().default(0),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("mail_cursors_uq").on(t.accountId, t.folder)],
+);
+
+/** What an automatic update changed, so Undo can revert it (application-emails D6). */
+export interface EmailUndo {
+  previousStage: string;
+  targetStage: string | null;
+  transitionId: number | null;
+  previousNextStep: { description: string; dueAt: number | null; doneAt: number | null } | null;
+  nextStepId: number | null;
+  nextStep: { description: string; dueAt: number | null } | null;
+  interviewId: number | null;
+  interviewScheduledAt: number | null;
+  previousFirstResponseAt: number | null;
+}
+
+/** Replies matched to applications (application-emails D6). Only these fields are kept. */
+export const applicationEmails = sqliteTable(
+  "application_emails",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    accountId: integer("account_id").references(() => mailAccounts.id, { onDelete: "set null" }),
+    messageId: text("message_id").notNull(),
+    folder: text("folder").notNull(),
+    uid: integer("uid"),
+    receivedAt: integer("received_at", { mode: "timestamp_ms" }).notNull(),
+    fromName: text("from_name"),
+    fromAddress: text("from_address").notNull(),
+    subject: text("subject").notNull().default(""),
+    excerpt: text("excerpt").notNull().default(""),
+    /** Candidate application ids from the prefilter. */
+    candidates: text("candidates", { mode: "json" }).$type<number[]>().notNull().default([]),
+    applicationId: integer("application_id").references(() => applications.id, {
+      onDelete: "set null",
+    }),
+    category: text("category", { enum: EMAIL_CATEGORIES }),
+    confidence: text("confidence", { enum: EMAIL_CONFIDENCES }),
+    summary: text("summary"),
+    /** Validated model result (next step, interview, target stage). */
+    result: text("result", { mode: "json" }).$type<Record<string, unknown>>(),
+    status: text("status", { enum: EMAIL_STATUSES }).notNull().default("queued"),
+    undo: text("undo", { mode: "json" }).$type<EmailUndo>(),
+    /** Body kept only while queued for classification; cleared once classified. */
+    pendingBody: text("pending_body"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("application_emails_message_uq").on(t.messageId),
+    index("application_emails_app_idx").on(t.applicationId, t.receivedAt),
+    index("application_emails_status_idx").on(t.status),
+  ],
 );

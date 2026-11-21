@@ -1,5 +1,6 @@
 import { FakeLlmClient } from "@job-radar/core";
 import { describe, expect, it } from "vitest";
+import { darwinAdapter } from "../src/adapters/darwin";
 import { remoteOkAdapter, weWorkRemotelyAdapter } from "../src/adapters/feeds";
 import { hnHiringAdapter, parseHnHeader } from "../src/adapters/hn";
 import { assertNormalized, fixture, fixtureContext } from "./helpers";
@@ -88,5 +89,49 @@ describe("Hacker News who is hiring", () => {
       expect(r.kind).toBe("extraction");
       expect(r.prompt).toMatch(/^<untrusted name="hn_comment">/);
     }
+  });
+});
+
+describe("Darwin Recruitment", () => {
+  it("reads the job feed: reference id, location, engagement, rate and remote policy", async () => {
+    const ctx = fixtureContext({
+      "darwinrecruitment.com/?feed=job_feed": fixture("darwin-feed.rss"),
+    });
+    const offers = await darwinAdapter.fetchOffers(ctx);
+    assertNormalized(offers);
+    expect(offers.map((o) => o.externalId)).toEqual([
+      "1000000000001",
+      "1000000000002",
+      "1000000000003",
+    ]);
+    const [ai, platform, process] = offers;
+    expect(ai).toMatchObject({
+      title: "Senior AI Engineer (LLM Platform)",
+      companyName: "Darwin Recruitment",
+      location: "Remote Europe",
+      remotePolicy: "remote",
+      engagementType: "full-time",
+      compensation: { max: 11_000_000, currency: "EUR", period: "year" },
+      sourceUrl:
+        "https://www.darwinrecruitment.com/job/1000000000001-senior-ai-engineer-llm-platform-remote/",
+    });
+    expect(ai!.description).toContain("retrieval-augmented");
+    expect(platform).toMatchObject({
+      remotePolicy: "hybrid",
+      engagementType: "contract",
+      compensation: { min: 9000, currency: "EUR", period: "hour" },
+    });
+    expect(process!.remotePolicy).toBe("hybrid");
+    expect(ctx.logs).toContain("newest: 3 jobs");
+  });
+
+  it("runs one search per keyword and drops repeats", async () => {
+    const ctx = fixtureContext(
+      { "darwinrecruitment.com/?feed=job_feed": fixture("darwin-feed.rss") },
+      { settings: { keywords: ["AI", "platform"] } },
+    );
+    const offers = await darwinAdapter.fetchOffers(ctx);
+    expect(offers).toHaveLength(3);
+    expect(ctx.logs).toEqual(expect.arrayContaining(["AI: 3 jobs", "platform: 3 jobs"]));
   });
 });

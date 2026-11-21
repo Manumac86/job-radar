@@ -8,6 +8,7 @@ import {
   getOffer,
   INTERVIEW_TYPES,
   moveStage,
+  setApplicationCv,
   setNextStep,
   stageExists,
   updateInterview,
@@ -17,6 +18,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { cvSentFor } from "@/lib/profile";
 import { workerFetch } from "@/lib/worker";
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
@@ -203,4 +205,19 @@ export async function generateInterviewPrep(applicationId: number): Promise<Acti
   if (!res.ok) return { ok: false, error: res.error };
   refresh(app.offerId);
   return { ok: true, message: "Interview prep ready" };
+}
+
+/** Changes the CV recorded as sent for an application (cv-variants D5). */
+export async function setCvSent(applicationId: number, cvId: string): Promise<ActionResult> {
+  const app = getApplication(db(), applicationId);
+  if (!app) return { ok: false, error: "Application not found" };
+  const cv = cvSentFor(cvId);
+  if (!cv) return { ok: false, error: "That CV variant no longer exists" };
+  try {
+    setApplicationCv(db(), applicationId, cv);
+  } catch (err) {
+    return failure(err);
+  }
+  refresh(app.offerId);
+  return { ok: true, message: `CV sent: ${cv.name}` };
 }

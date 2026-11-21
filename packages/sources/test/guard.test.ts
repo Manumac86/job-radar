@@ -99,3 +99,79 @@ describe("read-only guard", () => {
     expect(() => budget.take("linkedin")).not.toThrow();
   });
 });
+
+describe("jsonResponses", () => {
+  const DASH = `<!doctype html><html><body>
+    <button id="simple">⚡ Simple Apply 1 cr</button>
+    <button id="applied">Applied</button>
+    <button id="unlock">Unlock with Premium</button>
+    <button id="auto" aria-label="Full Auto Apply">●</button>
+    <script>
+      fetch("/api/jobs?page=1&status=not-applied", { headers: { authorization: "Bearer SECRET-TOKEN" } });
+      fetch("/api/credits");
+      fetch("/api/text");
+      fetch("https://cdn.other.test/data.json").catch(() => {});
+    </script></body></html>`;
+
+  async function dashboard() {
+    const page = await browser.newPage();
+    await page.route("**/*", (route) => {
+      const u = new URL(route.request().url());
+      if (u.hostname === "cdn.other.test")
+        return route.fulfill({ contentType: "application/json", body: '{"third":true}' });
+      if (u.pathname === "/dashboard" || u.pathname === "/other")
+        return route.fulfill({ contentType: "text/html", body: DASH });
+      if (u.pathname === "/api/jobs")
+        return route.fulfill({
+          contentType: "application/json; charset=utf-8",
+          headers: { "set-cookie": "sid=SECRET-COOKIE" },
+          body: JSON.stringify({ jobs: [{ title: "Engineer" }] }),
+        });
+      if (u.pathname === "/api/credits")
+        return route.fulfill({ contentType: "application/json", body: '{"credits":30}' });
+      return route.fulfill({ contentType: "text/plain", body: "plain" });
+    });
+    const ro = readOnlyPage(page, {
+      site: "simpleapply",
+      budget: new PageBudget(20),
+      sleep: async () => {},
+    });
+    return { page, ro };
+  }
+
+  it("returns same-origin JSON bodies only, never headers, and resets on navigation", async () => {
+    const { page, ro } = await dashboard();
+    await ro.goto("https://simpleapply.test/dashboard");
+    await page.waitForLoadState("networkidle");
+    const jobs = await ro.jsonResponses(/^\/api\/jobs$/);
+    expect(jobs).toEqual([
+      {
+        url: "/api/jobs?page=1&status=not-applied",
+        status: 200,
+        body: { jobs: [{ title: "Engineer" }] },
+      },
+    ]);
+    const all = await ro.jsonResponses(/./);
+    expect(all.map((r) => r.url).sort()).toEqual([
+      "/api/credits",
+      "/api/jobs?page=1&status=not-applied",
+    ]);
+    expect(JSON.stringify(all)).not.toMatch(/SECRET|third/);
+
+    await page.unroute("**/*");
+    await page.route("**/*", (route) =>
+      route.fulfill({ contentType: "text/html", body: "<p>x</p>" }),
+    );
+    await ro.goto("https://simpleapply.test/other");
+    expect(await ro.jsonResponses(/./)).toEqual([]);
+    await page.close();
+  });
+
+  it("refuses SimpleApply's apply, applied, unlock and auto-apply controls", async () => {
+    const { page, ro } = await dashboard();
+    await ro.goto("https://simpleapply.test/dashboard");
+    for (const sel of ["#simple", "#applied", "#unlock", "#auto"])
+      await expect(ro.safeClick(sel)).rejects.toBeInstanceOf(ForbiddenActionError);
+    await page.close();
+  });
+});

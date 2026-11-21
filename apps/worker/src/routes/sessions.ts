@@ -1,5 +1,5 @@
 import { getSource, listSources, updateSource } from "@job-radar/db";
-import { BrowserMissingError, LOGGED_IN_SITES } from "@job-radar/sources";
+import { BrowserMissingError, SESSION_SITES } from "@job-radar/sources";
 import { Router } from "express";
 import type { WorkerContext } from "../context";
 import { errorMessage } from "../log";
@@ -24,7 +24,7 @@ export function sessionRoutes(ctx: WorkerContext): Router {
   });
 
   r.post("/sessions/:site/login", async (req, res) => {
-    const site = LOGGED_IN_SITES[req.params.site];
+    const site = SESSION_SITES[req.params.site];
     if (!ctx.browser)
       return void res.status(503).json({ error: "The isolated browser is not available" });
     if (!site) return void res.status(404).json({ error: "Unknown site" });
@@ -49,7 +49,7 @@ export function sessionRoutes(ctx: WorkerContext): Router {
       return void res.status(503).json({ error: "The isolated browser is not available" });
     const siteId = await ctx.browser.finishLogin();
     if (!siteId) return void res.status(409).json({ error: "No login in progress" });
-    const site = LOGGED_IN_SITES[siteId];
+    const site = SESSION_SITES[siteId];
     let status: "ok" | "logged_out" = "ok";
     try {
       if (site) status = await ctx.browser.checkSession(site);
@@ -62,7 +62,7 @@ export function sessionRoutes(ctx: WorkerContext): Router {
 
   /** Live check: opens the site once, read-only, and records whether the session is valid. */
   r.post("/sessions/:site/check", async (req, res) => {
-    const site = LOGGED_IN_SITES[req.params.site];
+    const site = SESSION_SITES[req.params.site];
     if (!ctx.browser)
       return void res.status(503).json({ error: "The isolated browser is not available" });
     if (!site) return void res.status(404).json({ error: "Unknown site" });

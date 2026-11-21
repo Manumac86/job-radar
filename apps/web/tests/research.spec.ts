@@ -27,9 +27,10 @@ test("researches a company from an offer and shows sourced facts", async ({ page
 test("manual research at the daily cap shows the limit", async ({ page }) => {
   const setCap = async (value: string) => {
     await page.goto("/settings");
-    const form = page.getByRole("form", { name: "General settings" });
+    const form = page.getByRole("form", { name: "Preferences" });
+    await form.getByText("Scoring and research", { exact: true }).click();
     await form.getByLabel("Daily company research cap").fill(value);
-    await form.getByRole("button", { name: "Save settings" }).click();
+    await page.getByRole("button", { name: "Save preferences" }).click();
     await expect(page.getByText(/^Saved/).first()).toBeVisible();
   };
   await setCap("1");

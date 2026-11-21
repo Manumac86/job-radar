@@ -7,7 +7,52 @@ import {
   SAMPLE_RESEARCH,
   normalizeSourceUrl,
 } from "@job-radar/core";
-import { registerAdapter, type PageReader, type SourceAdapter } from "@job-radar/sources";
+import {
+  registerAdapter,
+  type ImapAccount,
+  type PageReader,
+  type ReadOnlyImap,
+  type SourceAdapter,
+} from "@job-radar/sources";
+
+/** No network in test mode: every mailbox is an empty INBOX holding 3 messages; a host
+ *  containing "invalid" refuses the login, so the UI can show the error. */
+function fakeMailbox(account: ImapAccount): ReadOnlyImap {
+  return {
+    async connect() {
+      if (account.host.includes("invalid")) {
+        throw Object.assign(new Error("Command failed"), { authenticationFailed: true });
+      }
+    },
+    async mailboxOpen() {
+      return { uidValidity: 1, exists: 3 };
+    },
+    async search() {
+      return [];
+    },
+    async *fetch() {},
+    async fetchOne() {
+      return false;
+    },
+    async logout() {},
+    close() {},
+  };
+}
+
+/** With CV variants in the prompt, recommend the first one (cv-variants), like the real model. */
+function testModeCv(prompt: string) {
+  const block = prompt.split("CV variants (trusted")[1];
+  const id = block ? /^\[([a-z0-9-]+)\] /m.exec(block)?.[1] : undefined;
+  return id
+    ? {
+        cv: {
+          recommended: id,
+          reason: "Test-mode recommendation: this version leads with the offer's focus.",
+          gaps: ["Kubernetes"],
+        },
+      }
+    : {};
+}
 
 export const TEST_MODE = process.env["JOB_RADAR_TEST_MODE"] === "1";
 
@@ -49,6 +94,7 @@ export function setupTestMode(): {
   llmClient: FakeLlmClient;
   researchClient: FakeResearchClient;
   newPageReader: () => PageReader;
+  mailConnect: (account: ImapAccount) => ReadOnlyImap;
 } | null {
   if (!TEST_MODE) return null;
   registerAdapter(fakeAdapter);
@@ -57,47 +103,58 @@ export function setupTestMode(): {
       ? SAMPLE_INTERVIEW_PREP
       : req.schemaName === "learned_preferences"
         ? SAMPLE_LEARNING_OPS([...req.prompt.matchAll(/^Offer #(\d+):/gm)].map((m) => Number(m[1])))
-        : req.schemaName === "imported_offer"
+        : req.schemaName === "reply_classification"
           ? {
-              is_job_offer: true,
-              title: "Founding AI Engineer",
-              company: "Imported Labs",
-              location: "Remote (Europe)",
-              remote_policy: "remote",
-              engagement_type: "full-time",
-              compensation_text: null,
+              application_id: null,
+              category: "other",
+              confidence: "low",
+              summary: "Test-mode classification.",
+              next_step: null,
+              interview: null,
             }
-          : req.kind === "drafting"
+          : req.schemaName === "imported_offer"
             ? {
-                message:
-                  "Test-mode draft: I led the frontend of an agentic RAG analytics platform and would like to help.",
-                screening_answers: [],
-                suggested_rate: {
-                  amount: 90,
-                  currency: "EUR",
-                  period: "hour",
-                  reasoning: "Test mode.",
-                },
-                verify_before_sending: [],
+                is_job_offer: true,
+                title: "Founding AI Engineer",
+                company: "Imported Labs",
+                location: "Remote (Europe)",
+                remote_policy: "remote",
+                engagement_type: "full-time",
+                compensation_text: null,
               }
-            : {
-                overall: 84,
-                skills_fit: 90,
-                seniority_fit: 80,
-                rate_fit: 50,
-                location_fit: 90,
-                engagement_fit: 80,
-                rationale: "Test-mode score: strong overlap with your agentic RAG work.",
-                red_flags: [],
-                service_lines: ["agentic-rag"],
-                is_leadership: false,
-                eligibility: { restricted_to: [], owner_eligible: true },
-                company: { stage: "unknown", engineering_team_size: null },
-              },
+            : req.kind === "drafting"
+              ? {
+                  message:
+                    "Test-mode draft: I led the frontend of an agentic RAG analytics platform and would like to help.",
+                  screening_answers: [],
+                  suggested_rate: {
+                    amount: 90,
+                    currency: "EUR",
+                    period: "hour",
+                    reasoning: "Test mode.",
+                  },
+                  verify_before_sending: [],
+                }
+              : {
+                  overall: 84,
+                  skills_fit: 90,
+                  seniority_fit: 80,
+                  rate_fit: 50,
+                  location_fit: 90,
+                  engagement_fit: 80,
+                  rationale: "Test-mode score: strong overlap with your agentic RAG work.",
+                  red_flags: [],
+                  service_lines: ["agentic-rag"],
+                  is_leadership: false,
+                  eligibility: { restricted_to: [], owner_eligible: true },
+                  company: { stage: "unknown", engineering_team_size: null },
+                  ...testModeCv(req.prompt),
+                },
   );
   return {
     llmClient,
     researchClient: new FakeResearchClient([], SAMPLE_RESEARCH),
     newPageReader: fakePageReader,
+    mailConnect: fakeMailbox,
   };
 }

@@ -351,6 +351,38 @@ export function openOfferIds(db: Db): number[] {
     .map((r) => r.id);
 }
 
+/** Shortlisted offers without an application: the ones a CV recommendation refresh rescores. */
+export function shortlistedWithoutApplicationIds(db: Db): number[] {
+  return db
+    .select({ id: offers.id })
+    .from(offers)
+    .where(
+      and(
+        eq(offers.triage, "shortlisted"),
+        sql`not exists (select 1 from applications a where a.offer_id = ${offers.id})`,
+      ),
+    )
+    .all()
+    .map((r) => r.id);
+}
+
+/**
+ * Shortlisted offers (without an application) whose latest score saw other CV variants
+ * than `variantsHash`: the count behind "Refresh CV recommendations (N)".
+ */
+export function staleCvRecommendationCount(db: Db, variantsHash: string): number {
+  const row = db.$client
+    .prepare(
+      `select count(*) as n from offers o
+       where o.triage = 'shortlisted'
+         and not exists (select 1 from applications a where a.offer_id = o.id)
+         and coalesce((select s.cv_variants_hash from scores s where s.offer_id = o.id
+                        order by s.created_at desc, s.id desc limit 1), '') <> ?`,
+    )
+    .get(variantsHash) as { n: number };
+  return row.n;
+}
+
 export interface OfferFilters {
   scoreClass?: ScoreClass[];
   triage?: TriageState[];

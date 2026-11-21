@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:job_listing="https://www.darwinrecruitment.com"
+>
+<channel>
+	<title>Darwin Recruitment</title>
+	<link>https://www.darwinrecruitment.com/</link>
+	<description></description>
+	<item>
+		<title>Senior AI Engineer (LLM Platform)</title>
+		<link>https://www.darwinrecruitment.com/job/1000000000001-senior-ai-engineer-llm-platform-remote/</link>
+		<dc:creator><![CDATA[Darwin Recruitment]]></dc:creator>
+		<pubDate>Wed, 18 Nov 2026 00:00:00 +0000</pubDate>
+		<guid isPermaLink="false">https://www.darwinrecruitment.com/job/1000000000001-senior-ai-engineer-llm-platform-remote/</guid>
+		<description><![CDATA[Senior AI Engineer &#8211; fully remote across Europe&#8230;]]></description>
+		<content:encoded><![CDATA[<h1>Senior AI Engineer</h1><p><strong>Location:</strong> Remote (Europe)<br /><strong>Salary:</strong> Up to €110,000 Base + Benefits</p><p>Our client, a Series B start-up, is building retrieval-augmented assistants with TypeScript and Python.</p>]]></content:encoded>
+		<job_listing:location><![CDATA[Remote Europe]]></job_listing:location>
+		<job_listing:job_type><![CDATA[Permanent]]></job_listing:job_type>
+		<job_listing:job_category><![CDATA[Technology]]></job_listing:job_category>
+		<job_listing:company><![CDATA[Darwin Recruitment]]></job_listing:company>
+	</item>
+	<item>
+		<title>Contract Platform Engineer</title>
+		<link>https://www.darwinrecruitment.com/job/1000000000002-contract-platform-engineer-amsterdam-north-holland/</link>
+		<dc:creator><![CDATA[Darwin Recruitment]]></dc:creator>
+		<pubDate>Tue, 17 Nov 2026 00:00:00 +0000</pubDate>
+		<guid isPermaLink="false">https://www.darwinrecruitment.com/job/1000000000002-contract-platform-engineer-amsterdam-north-holland/</guid>
+		<description><![CDATA[Platform engineer for a telecoms operator&#8230;]]></description>
+		<content:encoded><![CDATA[<p><strong>Location:</strong> Amsterdam &#8211; Hybrid (2 days on site)<br /><strong>Rate:</strong> €90 per hour</p><p>Kubernetes, Kafka and Terraform.</p>]]></content:encoded>
+		<job_listing:location><![CDATA[Amsterdam North Holland]]></job_listing:location>
+		<job_listing:job_type><![CDATA[Contract]]></job_listing:job_type>
+		<job_listing:job_category><![CDATA[Technology]]></job_listing:job_category>
+		<job_listing:company><![CDATA[Darwin Recruitment]]></job_listing:company>
+	</item>
+	<item>
+		<title>Process Engineer</title>
+		<link>https://www.darwinrecruitment.com/job/1000000000003-process-engineer-eindhoven-north-brabant/</link>
+		<pubDate>Mon, 16 Nov 2026 00:00:00 +0000</pubDate>
+		<guid isPermaLink="false">https://www.darwinrecruitment.com/job/1000000000003-process-engineer-eindhoven-north-brabant/</guid>
+		<content:encoded><![CDATA[<p>On-site role in a semiconductor fab. Remote work offering &#8211; 40-60% from home.</p>]]></content:encoded>
+		<job_listing:location><![CDATA[Eindhoven North Brabant]]></job_listing:location>
+		<job_listing:job_type><![CDATA[Permanent]]></job_listing:job_type>
+		<job_listing:company><![CDATA[Darwin Recruitment]]></job_listing:company>
+	</item>
+	<item>
+		<title></title>
+		<link>https://www.darwinrecruitment.com/job/broken/</link>
+	</item>
+</channel>
+</rss>

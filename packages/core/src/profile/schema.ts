@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { CvVariant } from "./variants";
 
 const nonEmpty = z.string().trim().min(1, "must not be empty");
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'must be a 24-hour time like "08:30"');
@@ -113,6 +114,12 @@ export const preferencesSchema = z
         digest_time: "08:30",
         follow_up_days: [7],
       }),
+    // Replies to applications read from the owner's mailboxes (application-emails).
+    mail: z
+      .object({
+        check_minutes: z.number().int().min(5).max(1440).default(15),
+      })
+      .default({ check_minutes: 15 }),
   })
   .strict();
 
@@ -121,7 +128,10 @@ export type PreferencesInput = z.input<typeof preferencesSchema>;
 
 export interface Profile {
   preferences: Preferences;
+  /** The master CV: complete and authoritative. */
   cv: string;
+  /** Named CV variants (cv-variants); empty or absent means a single CV. */
+  variants?: readonly CvVariant[];
   loadedAt: Date;
 }
 

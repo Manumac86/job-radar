@@ -26,17 +26,33 @@ export interface DraftView {
   instruction: string | null;
   model: string;
   createdAt: string;
+  /** Name of the CV variant the draft was written for, when variants exist. */
+  cvVariantName?: string | null;
 }
 
-export function DraftsPanel({ offerId, drafts }: { offerId: number; drafts: DraftView[] }) {
+export function DraftsPanel({
+  offerId,
+  drafts,
+  cvOptions = [],
+  recommendedCv = null,
+}: {
+  offerId: number;
+  drafts: DraftView[];
+  /** Master CV first, then the variants; empty when the owner has no variants. */
+  cvOptions?: { id: string; name: string }[];
+  recommendedCv?: string | null;
+}) {
   const [selected, setSelected] = useState(drafts[0] ? String(drafts[0].id) : "");
   const [instruction, setInstruction] = useState("");
+  const [cv, setCv] = useState(
+    recommendedCv && cvOptions.some((o) => o.id === recommendedCv) ? recommendedCv : "master",
+  );
   const [pending, start] = useTransition();
   const draft = drafts.find((d) => String(d.id) === selected) ?? drafts[0];
 
   const regenerate = () =>
     start(async () => {
-      const r = await generateDraft(offerId, instruction);
+      const r = await generateDraft(offerId, instruction, cvOptions.length ? cv : null);
       if (r.ok) {
         toast.success(r.message ?? "Draft ready");
         setInstruction("");
@@ -77,6 +93,9 @@ export function DraftsPanel({ offerId, drafts }: { offerId: number; drafts: Draf
               <span>
                 v{draft.version} · {draft.model} · {draft.createdAt}
               </span>
+              {draft.cvVariantName ? (
+                <span data-testid="draft-cv">Written for CV: {draft.cvVariantName}</span>
+              ) : null}
               <Button
                 size="sm"
                 variant="ghost"
@@ -149,7 +168,22 @@ export function DraftsPanel({ offerId, drafts }: { offerId: number; drafts: Draf
             No draft yet. Strong matches get one automatically.
           </p>
         )}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 sm:flex-nowrap">
+          {cvOptions.length ? (
+            <Select value={cv} onValueChange={setCv}>
+              <SelectTrigger className="w-full sm:w-48" aria-label="CV to write for">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {cvOptions.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.name}
+                    {o.id === recommendedCv ? " (recommended)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : null}
           <Input
             value={instruction}
             onChange={(e) => setInstruction(e.target.value)}
