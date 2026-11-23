@@ -1,7 +1,10 @@
 // Seeds an isolated test database for the UI tests (never the real data/ directory).
 import {
+  addPersonToOffer,
   addTimelineEvent,
   createApplication,
+  createPerson,
+  type PersonFields,
   createDraft,
   insertApplicationEmail,
   insertPortalApplication,
@@ -326,6 +329,75 @@ for (const [app, row, suffix] of [
     data: { portalApplicationId: row.id, status: row.status },
     at: seen,
   });
+
+// Notes and people (people.spec.ts): two offers at one company without an application, and one
+// with an application for the pipeline drawer.
+const proseware = upsertCompany(db, { name: "Proseware", normalizedName: "proseware" });
+const prosewareOffers = [
+  "Data Platform Engineer",
+  "ML Platform Engineer",
+  "Solutions Architect",
+].map((title, i) =>
+  insertOffer(db, {
+    sourceId: "ashby",
+    externalId: `proseware-${i}`,
+    sourceUrl: `https://jobs.example.invalid/proseware/${i}`,
+    title,
+    normalizedTitle: title.toLowerCase(),
+    companyId: proseware.id,
+    companyName: "Proseware",
+    remotePolicy: "remote",
+    engagementType: "full-time",
+    description: `${title} at Proseware.`,
+  }),
+);
+createApplication(db, { offerId: prosewareOffers[2]!.id });
+
+// People directory (people-directory.spec.ts): Wingtip offers, an agency recruiter on no offer
+// yet, a duplicate pair to merge and a person to delete.
+const wingtip = upsertCompany(db, { name: "Wingtip", normalizedName: "wingtip" });
+const [wingtipFrontend, wingtipQa] = ["Frontend Engineer", "QA Engineer"].map((title, i) =>
+  insertOffer(db, {
+    sourceId: "ashby",
+    externalId: `wingtip-${i}`,
+    sourceUrl: `https://jobs.example.invalid/wingtip/${i}`,
+    title,
+    normalizedTitle: title.toLowerCase(),
+    companyId: wingtip.id,
+    companyName: "Wingtip",
+    remotePolicy: "remote",
+    engagementType: "full-time",
+    description: `${title} at Wingtip.`,
+  }),
+);
+const person = (name: string, extra: Partial<PersonFields> = {}): PersonFields => ({
+  name,
+  role: null,
+  linkedinUrl: null,
+  email: null,
+  phone: null,
+  other: null,
+  note: null,
+  ...extra,
+});
+createPerson(
+  db,
+  person("Rita Agent", {
+    role: "Recruiter",
+    company: "Northwind Talent",
+    linkedinUrl: "https://www.linkedin.com/in/rita-agent-example",
+  }),
+);
+addPersonToOffer(
+  db,
+  wingtipFrontend!.id,
+  person("Pat Kim", {
+    role: "Hiring manager",
+    linkedinUrl: "https://www.linkedin.com/in/pat-kim-example",
+  }),
+);
+addPersonToOffer(db, wingtipQa!.id, person("P. Kim", { email: "pat@wingtip.example" }));
+addPersonToOffer(db, wingtipFrontend!.id, person("Lou Gray", { role: "Engineer" }));
 
 db.$client.close();
 console.log(`Seeded UI test data in ${dataDir}`);

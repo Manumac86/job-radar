@@ -2,6 +2,8 @@
 // per company, its own daily cap, triggered research waits for the next day at the cap.
 import {
   appTimeZone,
+  isIdLikeCompany,
+  UNKNOWN_COMPANY,
   LlmCapReachedError,
   LlmUnavailableError,
   nextMidnight,
@@ -118,7 +120,11 @@ export class ResearchService {
     opts: { offerId?: number | null; reason: ResearchReason; force?: boolean },
   ): { kind: "active" | "fresh" | "queued"; row: CompanyResearch } {
     const { db } = this.deps;
-    if (!getCompany(db, companyId)) throw new ResearchError("Company not found", 404);
+    const company = getCompany(db, companyId);
+    if (!company) throw new ResearchError("Company not found", 404);
+    // Nothing to research without a real name (simpleapply-dover-fixes D2).
+    if (company.name === UNKNOWN_COMPANY || isIdLikeCompany(company.name))
+      throw new ResearchError("The company of this offer is unknown", 422);
     const capped = this.remaining() <= 0;
     if (capped && opts.reason === "manual") {
       const cap = this.deps.budget.summary().research.cap;

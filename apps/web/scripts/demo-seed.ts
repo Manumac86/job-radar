@@ -3,7 +3,10 @@
 //   JOB_RADAR_DATA_DIR=/tmp/job-radar-demo pnpm --filter @job-radar/web demo:seed
 // Every company and person here is invented.
 import {
+  addNote,
+  addPersonToOffer,
   createApplication,
+  linkPersonToOffer,
   createDraft,
   createNotification,
   finishRun,
@@ -271,6 +274,8 @@ const demo: Demo[] = [
   },
 ];
 
+// A fictional agency recruiter, on offers of two companies (people-directory).
+let recruiter: { id: number; company: string; linkedAgain: boolean } | null = null;
 const cls = (s: number): Cls => (s >= 80 ? "strong" : s >= 60 ? "possible" : "weak");
 demo.forEach((d, i) => {
   const c = upsertCompany(db, { name: d.company, normalizedName: d.company.toLowerCase() });
@@ -323,6 +328,21 @@ demo.forEach((d, i) => {
   }
   if (d.stage) {
     const app = createApplication(db, { offerId: offer.id, at: ago(d.days + 6) });
+    // A fictional recruiter and a note on the first application (offer-notes-and-people).
+    if (!demo.slice(0, i).some((x) => x.stage)) {
+      const alex = addPersonToOffer(db, offer.id, {
+        name: "Alex Example",
+        role: "Recruiter",
+        company: "Northwind Talent",
+        linkedinUrl: "https://www.linkedin.com/in/alex-example",
+        email: null,
+        phone: null,
+        other: null,
+        note: null,
+      });
+      addNote(db, offer.id, "Alex suggested mentioning the RAG evaluation work.");
+      recruiter = { id: alex.id, company: d.company, linkedAgain: false };
+    }
     const path: Record<string, string[]> = {
       applied: [],
       screening_call: ["screening_call"],
@@ -335,6 +355,16 @@ demo.forEach((d, i) => {
     (path[d.stage] ?? []).forEach((stage, k) =>
       moveStage(db, app.id, stage, { at: ago(d.days + 4 - k) }),
     );
+  }
+  if (
+    recruiter &&
+    !recruiter.linkedAgain &&
+    !d.stage &&
+    d.company !== recruiter.company &&
+    d.score >= 75
+  ) {
+    linkPersonToOffer(db, offer.id, recruiter.id);
+    recruiter.linkedAgain = true;
   }
   if (d.score >= 85)
     createNotification(db, {

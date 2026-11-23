@@ -1,0 +1,12 @@
+{
+  "id": "11111111-2222-4333-8444-555555555555",
+  "client_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+  "client_name": "Contoso Staffing",
+  "client_logo": "https://example.invalid/logo.svg",
+  "client_domain": "contoso.example",
+  "title": "Sr. Full-Stack Software Engineer, Remote",
+  "location": null,
+  "user_provided_description": "<p><strong>Location: </strong>Global, fully remote</p><p><strong>Job Type: </strong>Contract (~15 hours per week)</p><ul><li>TypeScript</li><li>React</li></ul>",
+  "workplace_type": "REMOTE",
+  "active": true
+}

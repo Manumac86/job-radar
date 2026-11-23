@@ -1,7 +1,10 @@
 import {
+  UNKNOWN_COMPANY,
+  isIdLikeCompany,
   normalizeCompany,
   normalizeTitle,
   normalizedOfferSchema,
+  TITLE_NORMALIZER_VERSION,
   prefilter,
   remoteOnlyReason,
   type NormalizedOfferInput,
@@ -9,16 +12,23 @@ import {
 } from "@job-radar/core";
 import {
   addOfferLink,
+  correctOfferCompany,
   findOfferByExternalId,
   findOfferBySourceExternalId,
   findRecentDuplicate,
+  getSetting,
   insertOffer,
+  recomputeNormalizedTitles,
+  setSetting,
   touchOffer,
   upsertCompany,
   type Db,
 } from "@job-radar/db";
 
 export const DEDUPE_WINDOW_DAYS = 14;
+
+/** No real company: the placeholder, or an id given as the name (simpleapply-dover-fixes D2). */
+const unknownCompany = (name: string) => name === UNKNOWN_COMPANY || isIdLikeCompany(name);
 
 export interface IngestCounts {
   found: number;
@@ -28,6 +38,19 @@ export interface IngestCounts {
   updated: number;
   invalid: number;
   newOfferIds: number[];
+}
+
+const TITLE_VERSION_KEY = "title_normalizer_version";
+
+/**
+ * When title normalization changed since the last start, stored titles are recomputed once so
+ * new postings match older offers (simpleapply-dover-fixes D5). Returns how many changed.
+ */
+export function renormalizeTitles(db: Db): number | null {
+  if (getSetting<number>(db, TITLE_VERSION_KEY) === TITLE_NORMALIZER_VERSION) return null;
+  const changed = recomputeNormalizedTitles(db, normalizeTitle);
+  setSetting(db, TITLE_VERSION_KEY, TITLE_NORMALIZER_VERSION);
+  return changed;
 }
 
 /**
@@ -76,6 +99,23 @@ export function ingestOffers(
     const known = findOfferBySourceExternalId(db, sourceId, o.externalId);
     if (known) {
       touchOffer(db, known.id, now);
+      if (unknownCompany(known.companyName) && !unknownCompany(o.companyName)) {
+        const company = upsertCompany(db, {
+          name: o.companyName,
+          normalizedName: normalizeCompany(o.companyName),
+          website: o.companyWebsite,
+        });
+        // The SimpleApply summary is replaced by a full description when one came with the name.
+        const summaryOnly = known.description.startsWith("SimpleApply match");
+        correctOfferCompany(db, known.id, {
+          companyId: company.id,
+          companyName: o.companyName,
+          companyWebsite: o.companyWebsite ?? known.companyWebsite,
+          description:
+            summaryOnly && o.description !== known.description ? o.description : undefined,
+        });
+        log(`Company of "${known.title}" corrected to ${o.companyName}`);
+      }
       counts.updated++;
       continue;
     }
@@ -98,7 +138,10 @@ export function ingestOffers(
       meta: Object.keys(o.companyMeta).length ? o.companyMeta : undefined,
     });
     const normalizedTitle = normalizeTitle(o.title);
-    const dup = findRecentDuplicate(db, company.id, normalizedTitle, since);
+    // Offers without a real company are never matched by title: they may be different companies.
+    const dup = unknownCompany(o.companyName)
+      ? undefined
+      : findRecentDuplicate(db, company.id, normalizedTitle, since);
     if (dup) {
       addOfferLink(db, dup.id, { sourceId, externalId: o.externalId, url: o.sourceUrl });
       counts.duplicates++;

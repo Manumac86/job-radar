@@ -38,6 +38,8 @@ import {
 import type { CardData, StageData } from "./board";
 import { InterviewPrepSection } from "./interview-prep";
 import { EmailEntry } from "@/components/email-entry";
+import { NoteForm } from "@/components/note-form";
+import { PeopleCard } from "@/components/people-card";
 import { PortalEntry } from "@/components/portal-entry";
 
 const INTERVIEW_TYPES = [
@@ -488,6 +490,18 @@ export function ApplicationSheet({
             </SheetHeader>
             <div className="space-y-6 px-4 pb-6">
               <StageForm key={`stage-${card.id}-${card.stage}`} card={card} stages={stages} />
+              <Separator />
+              <Section title="Notes">
+                <NoteForm key={`note-${card.id}`} offerId={card.offerId} />
+              </Section>
+              <Separator />
+              <Section title="People">
+                <PeopleCard
+                  key={`people-${card.offerId}`}
+                  offerId={card.offerId}
+                  companyName={card.company}
+                />
+              </Section>
               <Separator />
               {card.emails.length || card.portalUpdates.length ? (
                 <>

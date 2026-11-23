@@ -22,10 +22,19 @@ export function openDatabase(options: OpenOptions = {}): Db {
   const sqlite = new Database(path);
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("busy_timeout = 5000");
-  sqlite.pragma("foreign_keys = ON");
   sqlite.pragma("synchronous = NORMAL");
   const db = drizzle(sqlite, { schema }) as Db;
-  if (options.migrate !== false) migrate(db, { migrationsFolder: migrationsDir() });
+  if (options.migrate !== false) {
+    // Migrations that rebuild a table (drop and rename) run with foreign keys off: the migrator
+    // wraps them in a transaction, where the migration's own PRAGMA has no effect, and a DROP
+    // would otherwise cascade into the rows that reference the table (people-directory D1).
+    sqlite.pragma("foreign_keys = OFF");
+    migrate(db, { migrationsFolder: migrationsDir() });
+    const broken = sqlite.pragma("foreign_key_check") as unknown[];
+    if (broken.length)
+      throw new Error(`Database migration left ${broken.length} broken references`);
+  }
+  sqlite.pragma("foreign_keys = ON");
   return db;
 }
 

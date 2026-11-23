@@ -14,4 +14,4 @@
 ## 3. Verify
 
 - [x] 3.1 Run `pnpm verify`, commit locally.
-- [ ] 3.2 Owner check: in the app, applied offers are hidden by default, "Show applied" lists them with their pipeline stage.
+- [x] 3.2 Owner check: in the app, applied offers are hidden by default, "Show applied" lists them with their pipeline stage.

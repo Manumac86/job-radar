@@ -7,6 +7,7 @@ import {
 } from "@job-radar/core";
 import {
   failStaleRuns,
+  findOfferBySourceExternalId,
   finishRun,
   getSource,
   startRun,
@@ -17,6 +18,8 @@ import {
 import {
   SessionExpiredError,
   createPoliteFetcher,
+  enrichDoverOffers,
+  needsDoverCompany,
   type BrowserAccess,
   type MailConnector,
   type PoliteFetcher,
@@ -94,7 +97,7 @@ export async function executeRun(
       ? deps.fetcherFactory(addLine)
       : createPoliteFetcher({ onLog: addLine, minIntervalMs: 1000 });
     const ysettings = profile.preferences.sources[source.type] ?? {};
-    const raw = await adapter.fetchOffers({
+    let raw = await adapter.fetchOffers({
       sourceId,
       settings: { ...ysettings, ...source.settings },
       preferences: profile.preferences,
@@ -116,6 +119,19 @@ export async function executeRun(
         ? { ...deps.llm, model: profile.preferences.scoring.models.scoring }
         : undefined,
     });
+    // Dover-hosted SimpleApply matches: the real company from Dover (simpleapply-dover-fixes D1),
+    // only for offers not stored yet or stored without a real company.
+    if (sourceId === SIMPLEAPPLY_SOURCE_ID)
+      raw = await enrichDoverOffers(
+        raw,
+        fetcher,
+        (o) => {
+          if (!needsDoverCompany(o.companyName)) return false;
+          const stored = findOfferBySourceExternalId(deps.db, sourceId, o.externalId);
+          return !stored || needsDoverCompany(stored.companyName);
+        },
+        addLine,
+      );
     // SimpleApply matches may already be applied there: those get an application (design D4).
     const counts =
       sourceId === SIMPLEAPPLY_SOURCE_ID

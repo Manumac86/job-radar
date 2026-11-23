@@ -38,7 +38,7 @@ For accepted freelance or contract work the system SHALL record rate, currency, 
 - **THEN** the dashboard shows a capacity warning
 
 ### Requirement: Timeline
-The system SHALL keep an append-only timeline per offer and application of state changes, notes, drafts, interviews and emails matched to the application, marking which changes were made automatically from an email or from MyGreenhouse and which were undone.
+The system SHALL keep an append-only timeline per offer and application of state changes, notes, drafts, interviews and emails matched to the application, marking which changes were made automatically from an email or from MyGreenhouse and which were undone. The owner SHALL be able to add a note to any offer at any time, from the offer page or the pipeline drawer, without changing its stage.
 
 #### Scenario: Review history
 - **WHEN** the owner opens an application
@@ -51,6 +51,14 @@ The system SHALL keep an append-only timeline per offer and application of state
 #### Scenario: Change made from MyGreenhouse
 - **WHEN** MyGreenhouse showed the application as rejected
 - **THEN** the timeline shows the portal status and the stage change labelled "from MyGreenhouse", with an Undo action while it can still be undone
+
+#### Scenario: Note on an offer without an application
+- **WHEN** the owner adds the note "Contacted on Telegram" to an offer they have not applied to
+- **THEN** the offer's timeline shows the note with its date, and the offer's triage and stage do not change
+
+#### Scenario: Note from the pipeline drawer
+- **WHEN** the owner adds a note in an application's drawer without choosing another stage
+- **THEN** the note appears in the timeline and the application stays in its stage
 
 ### Requirement: Interview prep
 The system SHALL generate an interview preparation plan with the drafting model, counted against the daily drafts cap, when an application moves to an interview stage (a built-in interview stage, or a custom stage whose label names an interview) that has no plan yet, and on demand from the application sheet. The plan SHALL contain the focus of the round, likely questions with why they are asked and an answer outline, strengths to highlight with evidence from the CV, gaps to prepare, questions to ask and a checklist. Figures not found in the CV, profile or offer SHALL be replaced with "[VERIFY: …]" and listed. The owner SHALL be notified when an automatic plan is ready; a failed generation SHALL NOT block the stage change.

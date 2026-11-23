@@ -844,3 +844,40 @@ export const portalApplications = sqliteTable(
     index("portal_applications_status_idx").on(t.status),
   ],
 );
+
+/** People behind offers (contacts spec; people-directory D1). */
+export const people = sqliteTable(
+  "people",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    /** Where the person works; optional (people-directory D1). */
+    companyId: integer("company_id").references(() => companies.id),
+    name: text("name").notNull(),
+    role: text("role"),
+    linkedinUrl: text("linkedin_url"),
+    email: text("email"),
+    phone: text("phone"),
+    other: text("other"),
+    note: text("note"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("people_company_idx").on(t.companyId)],
+);
+
+export const offerPeople = sqliteTable(
+  "offer_people",
+  {
+    offerId: integer("offer_id")
+      .notNull()
+      .references(() => offers.id, { onDelete: "cascade" }),
+    personId: integer("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("offer_people_uq").on(t.offerId, t.personId),
+    index("offer_people_person_idx").on(t.personId),
+  ],
+);

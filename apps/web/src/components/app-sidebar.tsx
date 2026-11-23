@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Briefcase, Gauge, KanbanSquare, Radar, Rss, Settings } from "lucide-react";
+import { Bell, Briefcase, Gauge, KanbanSquare, Radar, Rss, Settings, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -19,6 +19,7 @@ const NAV = [
   { href: "/", label: "Dashboard", icon: Gauge },
   { href: "/offers", label: "Offers", icon: Briefcase },
   { href: "/pipeline", label: "Pipeline", icon: KanbanSquare },
+  { href: "/people", label: "People", icon: Users },
   { href: "/sources", label: "Sources", icon: Rss },
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },

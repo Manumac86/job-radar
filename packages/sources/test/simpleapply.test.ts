@@ -95,6 +95,19 @@ describe("parseSimpleApplyCsv", () => {
 });
 
 describe("mapSimpleApplyMatch", () => {
+  it("never keeps an id as the company (simpleapply-dover-fixes D2)", () => {
+    const m = mapSimpleApplyMatch(
+      {
+        title: "Sr. Full-Stack Software Engineer, Remote",
+        company: "7c1f9a20 4b3e 4d8a 9F61 2e0b5c7d3a19",
+        url: "https://jobs.dover.com/company/11111111-2222-4333-8444-555555555555",
+        via: "simpleapply dashboard",
+      },
+      new Date("2026-11-20T10:00:00Z"),
+    );
+    expect(m?.offer.companyName).toBe("Unknown company");
+  });
+
   it("treats an applied or interview status without a date as applied now, and converts salary to minor units", () => {
     const m = mapSimpleApplyMatch(
       {

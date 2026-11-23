@@ -24,4 +24,4 @@
 
 - [x] 5.1 Create the public repo `Manumac86/job-radar`, set `jobradar.private`, run `publish:sync`, and push `public` → `main`. Then create release v0.1.0 with the `.dmg` and the release compose file, and push the images. Verified by `gh release view` and by an anonymous `docker pull`.
 - [x] 5.2 Portfolio entry `job-radar` (en and es, screenshots with fictitious data, links to the repo and the release) in `manumartinez-dev`. Verified by the portfolio build and tests, then pushed to main.
-- [ ] 5.3 Owner check: download the `.dmg` from the release on a clean user account (or after moving the app's data aside), start fresh, and see the example profile. The Docker release compose starts. The portfolio page shows the project.
+- [x] 5.3 Owner check: download the `.dmg` from the release on a clean user account (or after moving the app's data aside), start fresh, and see the example profile. The Docker release compose starts. The portfolio page shows the project.

@@ -107,6 +107,33 @@ function setup(opts: { cap?: number; research?: FakeResearchClient } = {}) {
 }
 
 describe("ResearchService", () => {
+  it("refuses to research an unknown company (simpleapply-dover-fixes D2)", () => {
+    const s = setup();
+    const [id] = ingestOffers(
+      s.db,
+      "ashby",
+      [
+        {
+          sourceId: "ashby",
+          externalId: "unknown-co",
+          sourceUrl: "https://jobs.ashbyhq.com/x/2",
+          title: "Platform Engineer",
+          companyName: "Unknown company",
+          remotePolicy: "remote",
+          description: "Platform work.",
+        },
+      ],
+      s.profile.get()!.preferences,
+      new Date(),
+      () => {},
+      { prefilter: false },
+    ).newOfferIds;
+    const offer = getOffer(s.db, id!)!;
+    expect(() => s.research.request(offer.companyId!, { reason: "manual" })).toThrow(
+      "The company of this offer is unknown",
+    );
+  });
+
   it("researches a company, stores a grounded profile and reuses it while fresh", async () => {
     const s = setup();
     const res = await request(s.app)

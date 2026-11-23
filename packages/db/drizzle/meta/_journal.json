@@ -64,6 +64,20 @@
       "when": 1795376718058,
       "tag": "0008_preferred_regions",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1795430130281,
+      "tag": "0009_people",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1795431722793,
+      "tag": "0010_people_company_optional",
+      "breakpoints": true
     }
   ]
 }

@@ -32,6 +32,7 @@ import cron from "node-cron";
 import { config } from "./config";
 import type { WorkerContext } from "./context";
 import { Scheduler } from "./ingest/scheduler";
+import { renormalizeTitles } from "./ingest/pipeline";
 import { syncSources } from "./ingest/sources-sync";
 import { errorMessage, log } from "./log";
 import { DraftService } from "./drafts/service";
@@ -219,6 +220,8 @@ export function createWorker(
       if (closed) log.warn("closed runs interrupted by a restart", { count: closed });
       const requeued = resetInterruptedScoring(db);
       if (requeued) log.warn("re-queued offers interrupted while scoring", { count: requeued });
+      const retitled = renormalizeTitles(db);
+      if (retitled !== null) log.info("offer titles normalized again", { changed: retitled });
       syncSources(db, adapters, profile.get()?.preferences ?? null);
       ensureManualSource(db);
       scheduler.start();

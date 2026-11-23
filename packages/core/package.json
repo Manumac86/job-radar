@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./offers": "./src/offers/types.ts",
+    "./people": "./src/offers/people.ts",
     "./time": "./src/time.ts",
     "./pipeline": "./src/pipeline.ts",
     "./profile": "./src/profile/index.ts"

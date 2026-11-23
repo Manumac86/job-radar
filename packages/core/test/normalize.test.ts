@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isIdLikeCompany,
   normalizeCompany,
   normalizeTitle,
   parseCompensation,
@@ -20,6 +21,26 @@ describe("normalization", () => {
       normalizeTitle("Senior AI Engineer – Remote"),
     );
     expect(normalizeTitle("Full-Stack Engineer [m/f/d]")).toBe("full stack engineer");
+  });
+
+  it("ignores trailing work-mode and contract qualifiers (simpleapply-dover-fixes D4)", () => {
+    const plain = normalizeTitle("Sr. Full-Stack Software Engineer, Remote");
+    expect(plain).toBe("senior full stack software engineer");
+    expect(normalizeTitle("🌍 Sr. Full-Stack Software Engineer, Remote- Contract")).toBe(plain);
+    expect(normalizeTitle("Senior Full-Stack Software Engineer | Remote - Full Time")).toBe(plain);
+    expect(normalizeTitle("Senior Full-Stack Software Engineer – Part-time")).toBe(plain);
+    expect(normalizeTitle("Contract Manager")).not.toBe(normalizeTitle("Manager"));
+    expect(normalizeTitle("Engineer, Platform")).toBe("engineer platform");
+    expect(normalizeTitle("Frontend/Backend Engineer")).toBe("frontend backend engineer");
+  });
+
+  it("recognizes company names that are only ids (D2)", () => {
+    expect(isIdLikeCompany("7c1f9a20 4b3e 4d8a 9F61 2e0b5c7d3a19")).toBe(true);
+    expect(isIdLikeCompany("7c1f9a20-4b3e-4d8a-9f61-2e0b5c7d3a19")).toBe(true);
+    expect(isIdLikeCompany("7c1f9a204b3e4d8a9f612e0b")).toBe(true);
+    expect(isIdLikeCompany("Contoso")).toBe(false);
+    expect(isIdLikeCompany("3M")).toBe(false);
+    expect(isIdLikeCompany("deadbeef")).toBe(false);
   });
 
   it("strips HTML", () => {

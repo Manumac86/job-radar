@@ -15,6 +15,7 @@
     "db:restore": "tsx src/cli/restore.ts"
   },
   "dependencies": {
+    "@job-radar/core": "workspace:*",
     "better-sqlite3": "13.2.0",
     "drizzle-orm": "0.45.4"
   },

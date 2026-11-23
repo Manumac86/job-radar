@@ -155,6 +155,12 @@ overrides both).
   [SimpleApply](https://simpleapply.ai), click **Export CSV** there and use **Import → SimpleApply
   CSV**: its matches are de-duplicated, filtered and scored like any other offer, and the ones it
   applied to appear in the pipeline. The file is read locally.
+- **Notes and people.** On any offer, applied or not, add notes to its timeline and the people
+  behind it (recruiter, hiring manager, referral) with their LinkedIn or other contact. **Add
+  person** searches everyone you already know, so an agency recruiter is entered once and linked
+  to offers of any company; a repeated LinkedIn or email is caught. The **People** page lists
+  them all with their offers, to edit, merge duplicates or delete. People stay on your computer
+  and never reach the LLM.
 - **Pipeline.** Drag applications through the stages. Moving one to an interview stage creates
   an interview prep plan: likely questions, strengths from your CV, gaps and questions to ask.
   Applications with no news get a follow-up reminder after the days you set (default 7).

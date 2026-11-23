@@ -12,6 +12,8 @@ import {
   pendingPortalSuggestions,
   portalUpdatesForApplication,
   pendingEmailSuggestions,
+  peopleForOffer,
+  peopleKnownForOffer,
   scoreHistory,
 } from "@job-radar/db";
 import { AlertTriangle, ExternalLink, FileText } from "lucide-react";
@@ -22,6 +24,8 @@ import { ScoreBadge } from "@/components/score-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmailEntry } from "@/components/email-entry";
+import { NoteForm } from "@/components/note-form";
+import { PeopleCard } from "@/components/people-card";
 import { PortalEntry } from "@/components/portal-entry";
 import { db } from "@/lib/db";
 import { toEmailView } from "@/lib/emails";
@@ -121,6 +125,21 @@ export default async function OfferPage({ params }: { params: Params }) {
   const drafts = listDrafts(d, offerId);
   const links = offerLinksFor(d, offerId);
   const timeline = offerTimeline(d, offerId).reverse();
+  const toPersonView = (p: ReturnType<typeof peopleForOffer>[number]) => ({
+    id: p.id,
+    name: p.name,
+    role: p.role,
+    companyName: p.companyName,
+    linkedinUrl: p.linkedinUrl,
+    email: p.email,
+    phone: p.phone,
+    other: p.other,
+    note: p.note,
+  });
+  const offerPeople = {
+    people: peopleForOffer(d, offerId).map(toPersonView),
+    known: peopleKnownForOffer(d, offerId).map(toPersonView),
+  };
   const application = getApplicationForOffer(d, offerId);
   const suggestionCandidates = new Map(
     pendingEmailSuggestions(d).map((s) => [s.email.id, s.candidates]),
@@ -445,9 +464,23 @@ export default async function OfferPage({ params }: { params: Params }) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Timeline</CardTitle>
+              <CardTitle>People</CardTitle>
             </CardHeader>
             <CardContent>
+              <PeopleCard
+                offerId={offer.id}
+                companyName={offer.companyName}
+                initial={offerPeople}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Timeline</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <NoteForm offerId={offer.id} />
               <ol className="space-y-2 text-sm" data-testid="timeline">
                 {timeline.map((e) => {
                   const email =
@@ -472,6 +505,16 @@ export default async function OfferPage({ params }: { params: Params }) {
                         <EmailEntry email={email} />
                       ) : portalUpdate ? (
                         <PortalEntry update={portalUpdate} />
+                      ) : e.kind === "note" ? (
+                        <div
+                          className="[overflow-wrap:anywhere] whitespace-pre-line"
+                          data-testid="timeline-note"
+                        >
+                          <span className="mr-1 rounded bg-muted px-1.5 py-0.5 text-xs font-medium">
+                            Note
+                          </span>
+                          {e.message}
+                        </div>
                       ) : (
                         <div className="[overflow-wrap:anywhere]">{e.message}</div>
                       )}

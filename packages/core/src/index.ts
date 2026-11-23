@@ -3,6 +3,7 @@ export * from "./llm/index";
 export * from "./offers/types";
 export * from "./scoring/index";
 export * from "./offers/normalize";
+export * from "./offers/people";
 export * from "./offers/prefilter";
 export * from "./offers/regions";
 export * from "./offers/compensation";

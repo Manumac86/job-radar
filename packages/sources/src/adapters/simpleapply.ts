@@ -1,7 +1,7 @@
 // SimpleApply (simpleapply-source change). Two read-only inputs share one mapper (design D2):
 // the owner's "Export CSV" file and, later, the dashboard's own /api/jobs responses. Job Radar
 // never applies, marks applied, hides or touches auto-apply on SimpleApply.
-import type { NormalizedOfferInput } from "@job-radar/core";
+import { UNKNOWN_COMPANY, isIdLikeCompany, type NormalizedOfferInput } from "@job-radar/core";
 import { appTimeZone, zonedTimeToUtc } from "@job-radar/core/time";
 import { csvRecords } from "../csv";
 import { PageCapReachedError } from "../browser/guard";
@@ -93,7 +93,9 @@ export function mapSimpleApplyMatch(
   timeZone = appTimeZone(),
 ): MappedMatch | null {
   const title = m.title.trim();
-  const company = m.company.trim();
+  const given = m.company.trim();
+  // Dover jobs come with the client id as their company (simpleapply-dover-fixes D2).
+  const company = isIdLikeCompany(given) ? UNKNOWN_COMPANY : given;
   const externalId = simpleApplyExternalId(m.url.trim());
   if (!title || !company || !externalId) return null;
   const workplace = m.workplaceType?.trim() ?? "";

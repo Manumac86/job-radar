@@ -477,6 +477,50 @@ export function listOffers(
   return { rows, total, appliedHidden };
 }
 
+/**
+ * A stored offer whose company was unknown (or an id) gets the real company from a later sighting
+ * (simpleapply-dover-fixes D3). Only company fields and, when given, the description change.
+ */
+export function correctOfferCompany(
+  db: DbOrTx,
+  offerId: number,
+  input: {
+    companyId: number;
+    companyName: string;
+    companyWebsite: string | null;
+    description?: string | undefined;
+  },
+): void {
+  db.update(offers)
+    .set({
+      companyId: input.companyId,
+      companyName: input.companyName,
+      companyWebsite: input.companyWebsite,
+      ...(input.description ? { description: input.description } : {}),
+      updatedAt: new Date(),
+    })
+    .where(eq(offers.id, offerId))
+    .run();
+}
+
+/** Recomputes every offer's normalized title in one transaction; returns how many changed. */
+export function recomputeNormalizedTitles(db: Db, normalize: (title: string) => string): number {
+  return db.transaction((tx) => {
+    let changed = 0;
+    const rows = tx
+      .select({ id: offers.id, title: offers.title, normalizedTitle: offers.normalizedTitle })
+      .from(offers)
+      .all();
+    for (const r of rows) {
+      const next = normalize(r.title);
+      if (next === r.normalizedTitle) continue;
+      tx.update(offers).set({ normalizedTitle: next }).where(eq(offers.id, r.id)).run();
+      changed++;
+    }
+    return changed;
+  });
+}
+
 export function touchOffer(db: DbOrTx, offerId: number, at = new Date()): void {
   db.update(offers).set({ lastSeenAt: at }).where(eq(offers.id, offerId)).run();
 }

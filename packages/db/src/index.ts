@@ -16,3 +16,4 @@ export * from "./queries/learning";
 export * from "./queries/research";
 export * from "./queries/mail";
 export * from "./queries/portal";
+export * from "./queries/people";
