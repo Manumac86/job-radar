@@ -3,6 +3,7 @@ import {
   normalizeTitle,
   normalizedOfferSchema,
   prefilter,
+  remoteOnlyReason,
   type NormalizedOfferInput,
   type Preferences,
 } from "@job-radar/core";
@@ -110,14 +111,8 @@ export function ingestOffers(
         ? ({ pass: true, matchedInclude: [] } as const)
         : prefilter(o, prefs.keywords);
     let filterReason: string | null = keywordCheck.pass ? null : keywordCheck.reason;
-    if (
-      !filterReason &&
-      options.prefilter !== false &&
-      prefs.location.remote_only &&
-      (o.remotePolicy === "onsite" || o.remotePolicy === "hybrid")
-    ) {
-      filterReason = `Not remote (${o.remotePolicy})`;
-    }
+    if (!filterReason && options.prefilter !== false)
+      filterReason = remoteOnlyReason(o, prefs.location);
 
     const comp = o.compensation;
     const offer = insertOffer(db, {

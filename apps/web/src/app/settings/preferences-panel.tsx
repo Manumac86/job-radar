@@ -565,6 +565,29 @@ function PreferencesForm({
           v.location.max_overlap_required,
           "e.g. until 17:00 US Eastern",
         )}
+        {tags("Hybrid regions", "location.hybrid_regions", v.location.hybrid_regions ?? [], {
+          placeholder: "e.g. Spain, Madrid",
+        })}
+        <p className="text-xs text-muted-foreground">
+          With Remote only on, hybrid offers located here are still scored. Names match whole words
+          in the offer&apos;s location.
+        </p>
+        {tags(
+          "Preferred regions",
+          "location.preferred_regions",
+          v.location.preferred_regions ?? [],
+          {
+            placeholder: "e.g. Spain",
+          },
+        )}
+        {num("Preferred region bonus", "location.preferred_bonus", v.location.preferred_bonus, {
+          min: 0,
+          max: 20,
+        })}
+        <p className="text-xs text-muted-foreground">
+          Points added to the overall score of offers in a preferred region, remote or hybrid. Never
+          added to a capped offer.
+        </p>
       </Section>
 
       <Section

@@ -128,3 +128,49 @@ describe("hard eligibility rules", () => {
     ]).toEqual(["strong", "strong", "possible", "possible", "weak"]);
   });
 });
+
+describe("preferred regions", () => {
+  const spain = {
+    ...prefs,
+    location: { ...prefs.location, preferred_regions: ["Spain"], preferred_bonus: 5 },
+  };
+
+  it("adds the bonus to a remote role open to Spain", () => {
+    const r = applyRules(
+      model({ overall: 74 }),
+      offer({ location: "Remote", regions: ["Spain", "Portugal"] }),
+      spain,
+    );
+    expect(r).toMatchObject({
+      overall: 79,
+      modelOverall: 74,
+      regionBonus: 5,
+      preferredRegion: "Spain",
+      capped: false,
+    });
+  });
+
+  it("classifies after the bonus and never goes above 100", () => {
+    expect(
+      applyRules(model({ overall: 77 }), offer({ location: "Madrid, Spain" }), spain),
+    ).toMatchObject({ overall: 82, scoreClass: "strong" });
+    expect(applyRules(model({ overall: 98 }), offer({ location: "Spain" }), spain).overall).toBe(
+      100,
+    );
+  });
+
+  it("gives no bonus to a capped offer or to other regions", () => {
+    const capped = applyRules(
+      model({ overall: 90, eligibility: { restricted_to: ["Spain"], owner_eligible: false } }),
+      offer({ location: "Madrid, Spain" }),
+      spain,
+    );
+    expect(capped).toMatchObject({ overall: 30, regionBonus: 0, preferredRegion: null });
+    const other = applyRules(
+      model({ overall: 74 }),
+      offer({ location: "Remote (Germany)", regions: ["Germany"] }),
+      spain,
+    );
+    expect(other).toMatchObject({ overall: 74, regionBonus: 0, preferredRegion: null });
+  });
+});

@@ -276,9 +276,11 @@ export default async function OfferPage({ params }: { params: Params }) {
                     {current.serviceLines.length
                       ? `Service lines: ${current.serviceLines.join(", ")} · `
                       : ""}
-                    {current.overall !== current.modelOverall
-                      ? `Capped from ${current.modelOverall} · `
-                      : ""}
+                    {current.regionBonus
+                      ? `Model ${current.modelOverall} · +${current.regionBonus} preferred region (${current.preferredRegion}) · `
+                      : current.overall !== current.modelOverall
+                        ? `Capped from ${current.modelOverall} · `
+                        : ""}
                     {current.model} · {formatDate(current.createdAt, true)}
                   </p>
                   {scores.length > 1 ? (

@@ -40,6 +40,9 @@ location:
   remote_only: true
   accepted_regions: [Worldwide, EMEA, Europe, EU, Portugal, US-remote-contractor]
   max_overlap_required: "until 17:00 US Eastern"
+  hybrid_regions: [] # e.g. [Portugal, Lisbon]: hybrid offers there pass the remote-only filter
+  preferred_regions: [] # e.g. [Portugal]: offers there (remote or hybrid) get preferred_bonus points
+  preferred_bonus: 5 # 0-20, added to the overall score; never to a capped offer
 
 keywords:
   include: [RAG, LLM, AI, Next.js, React, TypeScript, Node, full-stack, frontend, AI engineer, tech lead, CTO, engineering manager, head of engineering]

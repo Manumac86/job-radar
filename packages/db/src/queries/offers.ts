@@ -535,3 +535,49 @@ export function applyCompanyExclusions(
   }
   return { hidden, restored };
 }
+
+/**
+ * Re-applies the remote-only rule to open hybrid offers without an application when the
+ * hybrid regions change (location-preferred-regions D2). `reasonFor` returns the filter reason
+ * for an offer, or null when it passes; only offers filtered with exactly `hybridReason` return.
+ */
+export function applyHybridRegions(
+  db: Db,
+  reasonFor: (offer: { location: string | null; regions: string[] }) => string | null,
+  hybridReason = "Not remote (hybrid)",
+): { filtered: number; restored: number } {
+  const candidates = db
+    .select({
+      id: offers.id,
+      location: offers.location,
+      regions: offers.regions,
+      triage: offers.triage,
+      scoreStatus: offers.scoreStatus,
+    })
+    .from(offers)
+    .where(
+      and(
+        eq(offers.remotePolicy, "hybrid"),
+        or(
+          inArray(offers.triage, ["new", "shortlisted"]),
+          and(eq(offers.triage, "filtered"), eq(offers.triageReason, hybridReason)),
+        ),
+        sql`not exists (select 1 from applications a where a.offer_id = ${offers.id})`,
+      ),
+    )
+    .all();
+  let filtered = 0;
+  let restored = 0;
+  for (const o of candidates) {
+    const reason = reasonFor(o);
+    if (reason && o.triage !== "filtered") {
+      setTriage(db, o.id, "filtered", reason);
+      filtered++;
+    } else if (!reason && o.triage === "filtered") {
+      setTriage(db, o.id, "new");
+      if (o.scoreStatus === "not_scored") setScoreStatus(db, o.id, "awaiting_score");
+      restored++;
+    }
+  }
+  return { filtered, restored };
+}

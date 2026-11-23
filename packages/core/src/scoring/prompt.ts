@@ -13,6 +13,7 @@ export const SCORING_SYSTEM = [
   "If the offer requires residency or work authorization the owner does not have, set eligibility.owner_eligible=false and list the place in restricted_to.",
   "For leadership roles compare the company's stage and engineering team size with the owner's target and add the red flag \"company stage above target\" when the company is larger or later-stage.",
   "When a researched company profile is given, use its funding stage and engineering team size for company.stage and company.engineering_team_size instead of guessing from the offer, and treat its red flags as red flags about the company.",
+  "When the offer is located in, or open to, one of location.preferred_regions (remote or hybrid), give a higher location sub-score; the overall bonus for it is added afterwards, so do not add it to overall yourself.",
   "List red flags as short phrases. Pick service line ids only from the profile.",
   'The owner may list learned preferences from past decisions. When the offer clearly matches an [avoid] preference, lower the relevant sub-scores and the overall score and add the red flag "Matches what you avoid: <the preference without the word Avoid>". When it clearly matches a [prefer] preference, you may raise them. Learned preferences never override eligibility or rate rules.',
   'Write the rationale and red flags addressed to the candidate as "you" (for example "your EU authorization"); never use the candidate\'s name or gendered pronouns.',

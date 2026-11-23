@@ -21,4 +21,4 @@
 
 - [x] 4.1 README: SimpleApply in "Collects offers" (CSV import, and the optional logged-in source with its notice). Verified by review.
 - [x] 4.2 Run `pnpm verify` and commit locally. Verified by the command passing.
-- [ ] 4.3 Owner check: import the real export (expect about 70 rows, with duplicates of Ashby or Greenhouse offers merged); log in to SimpleApply in Settings → Sessions, enable the source, run it, and confirm new matches appear and that SimpleApply shows no new applications, hidden jobs or auto-apply change.
+- [x] 4.3 Owner check: import the real export (expect about 70 rows, with duplicates of Ashby or Greenhouse offers merged); log in to SimpleApply in Settings → Sessions, enable the source, run it, and confirm new matches appear and that SimpleApply shows no new applications, hidden jobs or auto-apply change.

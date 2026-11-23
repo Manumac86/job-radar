@@ -100,7 +100,10 @@ offers.forEach(([title, company, score, cls, engagement, source], i) => {
   recordScore(db, {
     offerId: offer.id,
     overall: score,
-    modelOverall: score,
+    // A preferred-region bonus on one offer (preferred-regions.spec.ts).
+    ...(company === "Fabrikam"
+      ? { modelOverall: score - 5, regionBonus: 5, preferredRegion: "Spain" }
+      : { modelOverall: score }),
     skillsFit: score,
     seniorityFit: score,
     rateFit: 80,

@@ -61,6 +61,11 @@ export const preferencesSchema = z
       remote_only: z.boolean().default(true),
       accepted_regions: z.array(nonEmpty).min(1),
       max_overlap_required: z.string().optional(),
+      // location-preferred-regions: hybrid offers here pass the remote-only filter.
+      hybrid_regions: z.array(nonEmpty).default([]),
+      // Offers in these regions (remote or hybrid) get preferred_bonus points on the overall score.
+      preferred_regions: z.array(nonEmpty).default([]),
+      preferred_bonus: z.number().int().min(0).max(20).default(5),
     }),
     keywords: z.object({
       include: z.array(nonEmpty).min(1, "list at least one include keyword"),

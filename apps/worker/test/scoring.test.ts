@@ -5,7 +5,7 @@ import {
   MemoryUsageStore,
   type ModelScore,
 } from "@job-radar/core";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   createApplication,
@@ -142,6 +142,28 @@ describe("scoring service", () => {
       redFlags: ["US residency required"],
     });
     expect(s.client.requests.every((r) => r.kind === "scoring" && r.model === "haiku")).toBe(true);
+  });
+
+  it("adds the preferred-region bonus and stores it with the score", async () => {
+    const s = setup([score(74), score(74)]);
+    const file = join(s.profile.status().dir, "preferences.yaml");
+    writeFileSync(
+      file,
+      readFileSync(file, "utf8").replace("preferred_regions: []", "preferred_regions: [Spain]"),
+    );
+    s.profile.reload();
+    const [spain] = s.ingest(1, { location: "Remote", regions: ["Spain", "Portugal"] });
+    const [other] = s.ingest(1, { location: "Remote (Germany)" });
+    s.scoring.enqueue([spain!, other!]);
+    await s.scoring.idle();
+    expect(getOffer(s.db, spain!)).toMatchObject({ score: 79 });
+    expect(scoreHistory(s.db, spain!)[0]).toMatchObject({
+      modelOverall: 74,
+      regionBonus: 5,
+      preferredRegion: "Spain",
+    });
+    expect(scoreHistory(s.db, other!)[0]).toMatchObject({ regionBonus: 0, preferredRegion: null });
+    expect(s.client.requests[0]!.prompt).toMatch(/preferred_regions/);
   });
 
   it("keeps score history after 'Rescore open offers'", async () => {

@@ -93,6 +93,12 @@ docker compose up -d --build   # or `pnpm dev` to run natively (web 3000, worker
    with **Form | YAML**). Saving from the form changes only the fields you edited and keeps your
    comments. Every change is validated, so an invalid file is never saved.
 
+   **Regions (optional).** With **Remote only** on, hybrid and on-site offers are filtered before
+   scoring. **Hybrid regions** (for example Spain, Madrid) let hybrid offers located there through.
+   **Preferred regions** add a fixed bonus (**Preferred region bonus**, 5 points by default, up to 20) to offers there, remote or hybrid, after the model scores them; an offer capped for
+   eligibility gets none. Names match whole words in the offer's location, ignoring case and
+   accents, so list the spellings you want (Spain, España).
+
    **CV variants (optional).** If you keep several versions of your CV (say AI engineer and tech
    lead), add them under **Settings → Profile files → CV variants**. Scoring still judges your
    fit against the full CV, so variants never change a score. The same scoring call also

@@ -4,6 +4,7 @@ export * from "./offers/types";
 export * from "./scoring/index";
 export * from "./offers/normalize";
 export * from "./offers/prefilter";
+export * from "./offers/regions";
 export * from "./offers/compensation";
 export * from "./time";
 export * from "./drafts/index";

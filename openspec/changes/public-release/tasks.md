@@ -16,12 +16,12 @@
 
 ## 4. Release artifacts and docs
 
-- [ ] 4.1 `docker-compose.release.yml` (images from GHCR, `TZ`, ports on 127.0.0.1) and `pnpm release:images` (buildx for amd64 and arm64, push). Verified by `docker compose -f docker-compose.release.yml config` and by pulling the pushed images.
+- [x] 4.1 `docker-compose.release.yml` (images from GHCR, `TZ`, ports on 127.0.0.1) and `pnpm release:images` (buildx for amd64 and arm64, push). Verified by `docker compose -f docker-compose.release.yml config` and by pulling the pushed images.
 - [x] 4.2 README for the public, LICENSE (MIT), CLAUDE.md rule 1 and the `openspec/config.yaml` context updated. Verified by review.
 - [x] 4.3 Rebuild the `.dmg` from the clean tree and check it for private terms (a strings scan of `app.asar` and the resources). Verified by an empty scan and `pnpm desktop:smoke`.
 
 ## 5. Publish
 
-- [ ] 5.1 Create the public repo `Manumac86/job-radar`, set `jobradar.private`, run `publish:sync`, and push `public` → `main`. Then create release v0.1.0 with the `.dmg` and the release compose file, and push the images. Verified by `gh release view` and by an anonymous `docker pull`.
+- [x] 5.1 Create the public repo `Manumac86/job-radar`, set `jobradar.private`, run `publish:sync`, and push `public` → `main`. Then create release v0.1.0 with the `.dmg` and the release compose file, and push the images. Verified by `gh release view` and by an anonymous `docker pull`.
 - [x] 5.2 Portfolio entry `job-radar` (en and es, screenshots with fictitious data, links to the repo and the release) in `manumartinez-dev`. Verified by the portfolio build and tests, then pushed to main.
 - [ ] 5.3 Owner check: download the `.dmg` from the release on a clean user account (or after moving the app's data aside), start fresh, and see the example profile. The Docker release compose starts. The portfolio page shows the project.

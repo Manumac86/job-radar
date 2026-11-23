@@ -197,6 +197,8 @@ export class ScoringService {
         offerId,
         overall: final.overall,
         modelOverall: final.modelOverall,
+        regionBonus: final.regionBonus,
+        preferredRegion: final.preferredRegion,
         skillsFit: res.score.skills_fit,
         seniorityFit: res.score.seniority_fit,
         rateFit: res.score.rate_fit,

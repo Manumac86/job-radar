@@ -2,11 +2,13 @@ import {
   ensureProfileFiles,
   excludedCompany,
   excludedCompanyReason,
+  remoteOnlyReason,
   loadProfile,
   type Profile,
 } from "@job-radar/core";
 import {
   applyCompanyExclusions,
+  applyHybridRegions,
   lastSuccessfulProfileLoad,
   recordProfileLoad,
   type Db,
@@ -87,6 +89,11 @@ export class ProfileService {
         excludedCompanyReason,
       );
       if (changed.hidden || changed.restored) log.info("company exclusions applied", changed);
+      const location = result.profile.preferences.location;
+      const hybrid = applyHybridRegions(this.db, (o) =>
+        remoteOnlyReason({ ...o, remotePolicy: "hybrid" }, location),
+      );
+      if (hybrid.filtered || hybrid.restored) log.info("hybrid regions applied", hybrid);
     } else {
       // Keep nothing usable: an invalid file must stop scoring, not silently reuse stale values.
       this.current = null;

@@ -1,5 +1,6 @@
 // Hard eligibility rules and score classes (job-scoring spec). Deterministic, applied after
 // the model so the caps hold even if the model is wrong or manipulated.
+import { regionMatch } from "../offers/regions";
 import type { Compensation } from "../offers/types";
 import type { Preferences } from "../profile/schema";
 import type { ModelScore } from "./schema";
@@ -25,6 +26,10 @@ export interface FinalScore {
   scoreClass: ScoreClass;
   redFlags: string[];
   capped: boolean;
+  /** Points added for a preferred region (0 when none or when capped). */
+  regionBonus: number;
+  /** The preferred region that earned the bonus. */
+  preferredRegion: string | null;
 }
 
 const COUNTRY_ALIASES: Record<string, string[]> = {
@@ -166,12 +171,19 @@ export function applyRules(model: ModelScore, offer: RuleInput, prefs: Preferenc
     if (tooLate || tooBig) flags.add("company stage above target");
   }
 
-  const overall = capped ? Math.min(model.overall, ELIGIBILITY_CAP) : model.overall;
+  // Preferred regions (location-preferred-regions D3): a fixed bonus, never on a capped offer.
+  const preferredRegion = capped ? null : regionMatch(offer, prefs.location.preferred_regions);
+  const regionBonus = preferredRegion ? prefs.location.preferred_bonus : 0;
+  const overall = capped
+    ? Math.min(model.overall, ELIGIBILITY_CAP)
+    : Math.min(100, model.overall + regionBonus);
   return {
     overall,
     modelOverall: model.overall,
     scoreClass: classify(overall, prefs.scoring.thresholds),
     redFlags: [...flags],
     capped,
+    regionBonus,
+    preferredRegion: regionBonus ? preferredRegion : null,
   };
 }

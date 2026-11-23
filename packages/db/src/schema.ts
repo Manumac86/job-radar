@@ -354,6 +354,9 @@ export const scores = sqliteTable(
       .references(() => offers.id, { onDelete: "cascade" }),
     overall: integer("overall").notNull(),
     modelOverall: integer("model_overall").notNull(),
+    // location-preferred-regions D3: points added for a preferred region, and which one.
+    regionBonus: integer("region_bonus").notNull().default(0),
+    preferredRegion: text("preferred_region"),
     skillsFit: integer("skills_fit").notNull(),
     seniorityFit: integer("seniority_fit").notNull(),
     rateFit: integer("rate_fit").notNull(),
