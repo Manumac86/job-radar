@@ -480,7 +480,7 @@ export function ApplicationSheet({
         {card ? (
           <>
             <SheetHeader>
-              <SheetTitle>{card.company}</SheetTitle>
+              <SheetTitle className="font-display text-2xl font-normal">{card.company}</SheetTitle>
               <SheetDescription>
                 {card.title} ·{" "}
                 <Link href={`/offers/${card.offerId}`} className="underline">

@@ -3,17 +3,12 @@
 // LinkedIn opens in the browser and other contacts are copied: Job Radar never sends, connects or
 // messages anyone (contacts spec).
 import { Copy, ExternalLink } from "lucide-react";
-import { toast } from "sonner";
 import type { PersonView } from "@/app/offers/[id]/people-actions";
+import { copyText } from "@/lib/clipboard";
 import { Button } from "@/components/ui/button";
 
 async function copy(label: string, value: string) {
-  try {
-    await navigator.clipboard.writeText(value);
-    toast.success(`${label} copied`);
-  } catch {
-    toast.error("Could not copy");
-  }
+  await copyText(value, `${label} copied`);
 }
 
 function CopyValue({ label, value }: { label: string; value: string }) {

@@ -61,7 +61,10 @@ export function IngestChart({
       </div>
       {asTable ? (
         <div className="max-h-72 overflow-auto">
-          <table className="w-full text-sm" aria-label="Offers ingested per day by source">
+          <table
+            className="w-full text-sm max-md:[&_td:not(:first-child)]:pl-3 max-md:[&_th:not(:first-child)]:pl-3"
+            aria-label="Offers ingested per day by source"
+          >
             <thead>
               <tr className="text-left text-muted-foreground">
                 <th className="py-1 font-medium">Day</th>

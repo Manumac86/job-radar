@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { generateDraft } from "./actions";
+import { copyText } from "@/lib/clipboard";
 
 export interface DraftView {
   id: number;
@@ -100,8 +101,7 @@ export function DraftsPanel({
                 size="sm"
                 variant="ghost"
                 onClick={async () => {
-                  await navigator.clipboard.writeText(draft.message);
-                  toast.success(`Draft v${draft.version} copied`);
+                  await copyText(draft.message, `Draft v${draft.version} copied`);
                 }}
               >
                 <Copy aria-hidden /> Copy
@@ -193,7 +193,7 @@ export function DraftsPanel({
             maxLength={500}
             aria-label="Instruction for the next draft"
           />
-          <Button onClick={regenerate} disabled={pending}>
+          <Button onClick={regenerate} disabled={pending} variant={draft ? "outline" : "default"}>
             <RefreshCw className={pending ? "animate-spin" : undefined} aria-hidden />
             {draft ? "Regenerate" : "Generate draft"}
           </Button>

@@ -73,6 +73,7 @@ notifications:
   quiet_hours: { start: "22:00", end: "08:00" }
   digest_time: "08:30"
   follow_up_days: [7] # Telegram reminder to follow up after N days without news (up to 5 values)
+  # link_base_url: https://my-mac.tailnet-name.ts.net # "Open links at": where Telegram and digest links open (docs/remote-access.md)
 
 # Replies to your applications, read from the mailboxes in Settings → Email accounts.
 mail:

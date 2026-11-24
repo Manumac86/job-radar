@@ -47,7 +47,9 @@ test("import a SimpleApply export and see its offers", async ({ page }) => {
   await expect(status).toContainText("1 marked as applied in the pipeline");
   await status.getByRole("link", { name: "See SimpleApply offers" }).click();
   await expect(page).toHaveURL(/source=simpleapply/);
-  await expect(page.getByText("Senior Software Engineer, Payments")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Senior Software Engineer, Payments" }),
+  ).toBeVisible();
 
   // Importing it again adds nothing.
   await page.getByRole("button", { name: "Import", exact: true }).click();

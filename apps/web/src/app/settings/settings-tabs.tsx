@@ -353,7 +353,7 @@ function StatusPanel({
               <CheckCircle2 className="size-4 text-strong" aria-hidden /> Connected
             </p>
           ) : (
-            <ol className="list-decimal space-y-0.5 pl-5 text-muted-foreground">
+            <ol className="list-decimal space-y-0.5 pl-5 text-muted-foreground [overflow-wrap:anywhere]">
               {(status.telegram?.howTo ?? ["Start the worker to see setup steps."]).map((h) => (
                 <li key={h}>{h}</li>
               ))}

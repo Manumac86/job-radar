@@ -53,3 +53,38 @@ test("drag a card to 'Technical interview' and add an interview", async ({ page 
   await expect(page.getByTestId("timeline")).toContainText("Applied → Technical interview");
   await expect(page.getByTestId("timeline")).toContainText("Interview scheduled: technical");
 });
+
+test("a dragged card stays visible above the other columns; Escape cancels the move", async ({
+  page,
+}) => {
+  await page.goto("/pipeline");
+  const columns = page.locator('section[data-testid^="column-"]');
+  const from = columns.first();
+  const to = columns.nth(1);
+  const card = from.getByTestId("pipeline-card").first();
+  const id = await card.getAttribute("data-application-id");
+  const company = (await card.getByRole("button").nth(1).locator("div").first().innerText()).trim();
+  const handle = card.getByTestId("drag-handle");
+  await handle.scrollIntoViewIfNeeded();
+  const h = (await handle.boundingBox())!;
+  const t = (await to.boundingBox())!;
+  const x = t.x + t.width / 2;
+  const y = t.y + 80;
+  await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(h.x + 20, h.y + 10, { steps: 5 });
+  await page.mouse.move(x, y, { steps: 15 });
+
+  // Over the other column, the card is drawn above it, not clipped by its own column.
+  const overlay = page.getByTestId("drag-overlay");
+  await expect(overlay).toBeVisible();
+  const o = (await overlay.boundingBox())!;
+  expect(o.x <= x && x <= o.x + o.width && o.y <= y && y <= o.y + o.height).toBe(true);
+  expect(await overlay.evaluate((el) => !el.closest('section[data-testid^="column-"]'))).toBe(true);
+
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  await expect(overlay).toHaveCount(0);
+  await expect(from.locator(`[data-application-id="${id}"]`)).toBeVisible();
+  await expect(page.getByText(`${company} → `)).toHaveCount(0);
+});

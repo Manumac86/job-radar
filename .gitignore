@@ -30,3 +30,7 @@ playwright-report/
 *.pem
 *.key
 app_password*
+
+# Impeccable: downloaded catalog references and hook cache stay local
+apps/web/.impeccable/reference/
+apps/web/.impeccable/hook.cache.json

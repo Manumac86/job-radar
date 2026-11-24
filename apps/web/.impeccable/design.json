@@ -1,0 +1,355 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-23T15:26:59.111Z",
+  "title": "Design System: Job Radar",
+  "extensions": {
+    "colorMeta": {
+      "vermilion-plate": {
+        "role": "primary",
+        "displayName": "Flashlight Vermilion (plate fill)",
+        "canonical": "#c2321a",
+        "tonalRamp": [
+          "#3a0f08",
+          "#5e180c",
+          "#8a2312",
+          "#c2321a",
+          "#e0573b",
+          "#ee8a73",
+          "#f6bcae",
+          "#fbe6e0"
+        ]
+      },
+      "flashlight-plate": {
+        "role": "primary",
+        "displayName": "Flashlight Vermilion (plate ring)",
+        "canonical": "#d63a1e"
+      },
+      "flashlight-night": {
+        "role": "primary",
+        "displayName": "Flashlight Vermilion (night)",
+        "canonical": "#ff4d2e",
+        "tonalRamp": [
+          "#4a1208",
+          "#7a1d0d",
+          "#b42a14",
+          "#ff4d2e",
+          "#ff7458",
+          "#ff9c86",
+          "#ffc6b8",
+          "#ffebe5"
+        ]
+      },
+      "plate-paper": {
+        "role": "neutral",
+        "displayName": "Chart Paper",
+        "canonical": "#f3f5f8"
+      },
+      "plate-card": {
+        "role": "neutral",
+        "displayName": "Plate White",
+        "canonical": "#fbfcfd"
+      },
+      "navy-ink": {
+        "role": "neutral",
+        "displayName": "Navy Ink",
+        "canonical": "#0e1730",
+        "tonalRamp": [
+          "#0e1730",
+          "#1f2a47",
+          "#3d4b6b",
+          "#4b5670",
+          "#8791a6",
+          "#c2cad8",
+          "#e4e9f1",
+          "#f3f5f8"
+        ]
+      },
+      "slate-ink": {
+        "role": "neutral",
+        "displayName": "Slate Ink",
+        "canonical": "#4b5670"
+      },
+      "plate-rule": {
+        "role": "neutral",
+        "displayName": "Hairline Rule",
+        "canonical": "#cfd6e1"
+      },
+      "night-ground": {
+        "role": "neutral",
+        "displayName": "Night Ground",
+        "canonical": "#0a1021",
+        "tonalRamp": [
+          "#060b18",
+          "#0a1021",
+          "#121c33",
+          "#16233d",
+          "#1b2a47",
+          "#22325a",
+          "#2a3b5e",
+          "#34476b"
+        ]
+      },
+      "night-plate": {
+        "role": "neutral",
+        "displayName": "Indigo Plate",
+        "canonical": "#16233d"
+      },
+      "chalk-ink": {
+        "role": "neutral",
+        "displayName": "Chalk Ink",
+        "canonical": "#f2f2e9"
+      },
+      "magnitude-possible-plate": {
+        "role": "neutral",
+        "displayName": "Possible Magnitude (plate)",
+        "canonical": "#3d4b6b"
+      },
+      "magnitude-weak-plate": {
+        "role": "neutral",
+        "displayName": "Weak Magnitude (plate)",
+        "canonical": "#8791a6"
+      },
+      "status-applied-plate": {
+        "role": "tertiary",
+        "displayName": "Applied Amber Ink",
+        "canonical": "#8a4f00"
+      },
+      "status-shortlisted-plate": {
+        "role": "tertiary",
+        "displayName": "Shortlisted Blue Ink",
+        "canonical": "#1f3b8a"
+      },
+      "rail-sky": {
+        "role": "neutral",
+        "displayName": "Rail Sky",
+        "canonical": "#0a1021"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Page titles in the page header (Spectral italic)."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Every card and plate title (the shared card title default), stage names, the wordmark (Spectral italic). Sub-headings inside a plate step down to Geist 500 14px."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Offer titles, company names, star labels (Spectral italic)."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Dashboard counts and the large score (Geist tabular)."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Table cells, rates, descriptions (Geist)."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Table heads, figure labels, status annotations, chart axes (Geist)."
+      }
+    },
+    "shadows": [
+      {
+        "name": "rest",
+        "value": "none",
+        "purpose": "Every surface at rest: separated by hairline rules and plate tone."
+      },
+      {
+        "name": "float",
+        "value": "0 8px 24px -12px rgb(10 16 33 / 0.28)",
+        "purpose": "Menus and popovers (night: rgb(0 0 0 / 0.6))."
+      },
+      {
+        "name": "lift",
+        "value": "0 12px 32px -12px rgb(10 16 33 / 0.32)",
+        "purpose": "A pipeline card while dragged (night: rgb(0 0 0 / 0.65))."
+      },
+      {
+        "name": "overlay",
+        "value": "0 16px 40px -16px rgb(10 16 33 / 0.36)",
+        "purpose": "Sheets and dialogs."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state",
+        "value": "150ms ease",
+        "purpose": "Row hover, card border, column drop target, star hover ring. Colour and opacity only."
+      },
+      {
+        "name": "reduced",
+        "value": "0.01ms",
+        "purpose": "Under prefers-reduced-motion every transition and animation snaps."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "md",
+        "value": "768px",
+        "purpose": "Offers list becomes a table; page gutter grows to 32px."
+      },
+      {
+        "name": "lg",
+        "value": "1024px",
+        "purpose": "Figure strip runs as 7 cells; dashboard plates go 3-up."
+      }
+    ],
+    "magnitudeRamp": [
+      {
+        "class": "strong",
+        "threshold": "score >= 80",
+        "diameter": "12px",
+        "ink": "var(--strong)"
+      },
+      {
+        "class": "possible",
+        "threshold": "score >= 60",
+        "diameter": "8px",
+        "ink": "var(--possible)"
+      },
+      {
+        "class": "weak",
+        "threshold": "score < 60",
+        "diameter": "4px",
+        "ink": "var(--weak)"
+      },
+      {
+        "class": "unscored",
+        "threshold": "no score",
+        "diameter": "8px dashed outline",
+        "ink": "var(--weak)"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one primary action in a region (Import, Save), in flashlight vermilion.",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3v12\"/><path d=\"m8 11 4 4 4-4\"/><path d=\"M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2\"/></svg>Import</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px 0 12px; border: none; border-radius: 3px; background: var(--primary, #c2321a); color: var(--primary-foreground, #fff); font: 500 14px/1 Geist, ui-sans-serif, system-ui, sans-serif; cursor: pointer; transition: background-color 150ms, box-shadow 150ms; } .ds-btn-primary:hover { background: color-mix(in oklab, var(--primary, #c2321a) 90%, transparent); } .ds-btn-primary:focus-visible { outline: 1px solid var(--flashlight, #d63a1e); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, #c2321a) 50%, transparent); } .ds-btn-primary:disabled { opacity: 0.5; pointer-events: none; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary actions on the plate: hairline stroke, no resting shadow.",
+      "html": "<button class=\"ds-btn-outline\">Export</button>",
+      "css": ".ds-btn-outline { height: 36px; padding: 0 16px; border: 1px solid var(--border, #cfd6e1); border-radius: 3px; background: var(--background, #f3f5f8); color: var(--foreground, #0e1730); font: 500 14px/1 Geist, ui-sans-serif, system-ui, sans-serif; cursor: pointer; transition: background-color 150ms; } .ds-btn-outline:hover { background: var(--accent, #e2e7ef); } .ds-btn-outline:focus-visible { outline: 1px solid var(--flashlight, #d63a1e); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, #c2321a) 50%, transparent); }"
+    },
+    {
+      "name": "Filter Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Search and filter fields in the offers toolbar: hairline stroke, vermilion focus and caret.",
+      "html": "<label class=\"ds-field\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-3.5-3.5\"/></svg><input class=\"ds-input\" placeholder=\"Search title, company, text\"></label>",
+      "css": ".ds-field { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px; border: 1px solid var(--input, #c2cad8); border-radius: 3px; background: transparent; color: var(--muted-foreground, #4b5670); width: 320px; } .ds-field:focus-within { outline: 1px solid var(--flashlight, #d63a1e); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, #c2321a) 50%, transparent); } .ds-input { flex: 1; border: none; background: transparent; outline: none; font: 400 14px Geist, ui-sans-serif, system-ui, sans-serif; color: var(--foreground, #0e1730); caret-color: var(--flashlight, #d63a1e); }"
+    },
+    {
+      "name": "Rail Navigation",
+      "kind": "nav",
+      "refersTo": "rail",
+      "description": "The night-sky rail in both themes; the active link wears a vermilion icon on the rail-active fill.",
+      "html": "<nav class=\"ds-rail\"><div class=\"ds-rail-brand\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" opacity=\"0.55\"/><circle cx=\"12\" cy=\"12\" r=\"6\" stroke=\"currentColor\" opacity=\"0.35\"/><path d=\"M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3\" stroke=\"currentColor\"/><path d=\"M12 12 18.4 5.6\" stroke=\"currentColor\" stroke-width=\"1.25\" stroke-linecap=\"round\"/><circle cx=\"16.2\" cy=\"8.6\" r=\"1.6\" fill=\"#ff4d2e\"/><circle cx=\"12\" cy=\"12\" r=\"1.1\" fill=\"currentColor\"/></svg><span>Job Radar</span></div><a class=\"ds-rail-link\" href=\"#\">Dashboard</a><a class=\"ds-rail-link ds-active\" href=\"#\" aria-current=\"page\"><span class=\"ds-rail-icon\"></span>Offers</a><a class=\"ds-rail-link\" href=\"#\">Pipeline</a><a class=\"ds-rail-link\" href=\"#\">Notifications<span class=\"ds-rail-badge\">3</span></a></nav>",
+      "css": ".ds-rail { width: 256px; padding: 0 8px 8px; background: var(--sidebar, #0a1021); color: var(--sidebar-foreground, #c6cddc); font: 400 14px Geist, ui-sans-serif, system-ui, sans-serif; display: flex; flex-direction: column; gap: 2px; } .ds-rail-brand { display: flex; align-items: center; gap: 10px; padding: 12px 8px; margin: 0 -8px 8px; border-bottom: 1px solid var(--sidebar-border, #1d2a45); color: #f2f2e9; font: italic 400 20px/1 Spectral, ui-serif, Georgia, serif; } .ds-rail-link { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 8px; border-radius: 3px; color: inherit; text-decoration: none; transition: background-color 150ms; } .ds-rail-link:hover { background: var(--sidebar-accent, #16233d); } .ds-rail-link:focus-visible { outline: 2px solid #ff4d2e; outline-offset: -2px; } .ds-active { background: var(--sidebar-accent, #16233d); color: #f2f2e9; font-weight: 500; } .ds-rail-icon { width: 12px; height: 12px; border: 1.5px solid #ff4d2e; border-radius: 2px; } .ds-rail-badge { margin-left: auto; padding: 0 5px; border-radius: 2px; background: #ff4d2e; color: #0a1021; font-size: 12px; font-weight: 500; }"
+    },
+    {
+      "name": "Status Annotation",
+      "kind": "chip",
+      "refersTo": "status-annotation",
+      "description": "Offer status drawn as a chart annotation: live states tinted, spent states quiet. Never a solid pill.",
+      "html": "<span class=\"ds-status ds-shortlisted\">Shortlisted</span> <span class=\"ds-status ds-applied\">Applied</span> <span class=\"ds-status ds-new\">New</span> <span class=\"ds-status ds-filtered\">Filtered</span> <span class=\"ds-status ds-dismissed\">Dismissed</span>",
+      "css": ".ds-status { display: inline-flex; align-items: center; padding: 2px 6px; border: 1px solid transparent; border-radius: 2px; font: 500 12px/1.33 Geist, ui-sans-serif, system-ui, sans-serif; white-space: nowrap; } .ds-shortlisted { color: var(--status-shortlisted, #1f3b8a); border-color: color-mix(in oklab, var(--status-shortlisted, #1f3b8a) 45%, transparent); background: color-mix(in oklab, var(--status-shortlisted, #1f3b8a) 10%, transparent); } .ds-applied { color: var(--status-applied, #8a4f00); border-color: color-mix(in oklab, var(--status-applied, #8a4f00) 45%, transparent); background: color-mix(in oklab, var(--status-applied, #8a4f00) 10%, transparent); } .ds-new { color: var(--status-new, #4b5670); border-color: var(--border, #cfd6e1); } .ds-filtered { color: var(--status-filtered, #7d8699); border: 1px dashed color-mix(in oklab, var(--status-filtered, #7d8699) 50%, transparent); } .ds-dismissed { color: var(--status-dismissed, #7d8699); text-decoration: line-through; text-decoration-thickness: 1px; }"
+    },
+    {
+      "name": "Plate",
+      "kind": "card",
+      "refersTo": "plate",
+      "description": "A ruled card: 4px corners, one hairline, no shadow; the card title defaults to the Spectral headline voice.",
+      "html": "<section class=\"ds-plate\"><h3 class=\"ds-plate-title\">Tonight’s sky</h3><p class=\"ds-plate-body\">Open offers from the last 30 days by score and age.</p></section>",
+      "css": ".ds-plate { padding: 24px; border: 1px solid var(--border, #cfd6e1); border-radius: 4px; background: var(--card, #fbfcfd); color: var(--card-foreground, #0e1730); max-width: 420px; } .ds-plate-title { margin: 0 0 8px; font: italic 400 20px/1.25 Spectral, ui-serif, Georgia, serif; letter-spacing: -0.01em; } .ds-plate-body { margin: 0; font: 400 14px/1.43 Geist, ui-sans-serif, system-ui, sans-serif; color: var(--muted-foreground, #4b5670); }"
+    },
+    {
+      "name": "Offer Row with Magnitude",
+      "kind": "custom",
+      "refersTo": "table-row",
+      "description": "Signature: the score as a magnitude dot on the fixed ramp, title in Spectral italic, figures tabular. The selected row rings its dot in vermilion.",
+      "html": "<div class=\"ds-row ds-selected\"><span class=\"ds-mag\"><span class=\"ds-dot ds-strong\"></span><span class=\"ds-ring\"></span></span><span class=\"ds-score\">92</span><span class=\"ds-offer\"><a href=\"#\" class=\"ds-offer-title\">Senior AI Engineer</a><span class=\"ds-offer-meta\">Northwind Health · Full-time · Remote</span></span><span class=\"ds-rate\">140,000 – 170,000 USD/yr</span></div><div class=\"ds-row\"><span class=\"ds-mag\"><span class=\"ds-dot ds-possible\"></span></span><span class=\"ds-score\">68</span><span class=\"ds-offer\"><a href=\"#\" class=\"ds-offer-title\">Frontend Engineer, Data Visualization</a><span class=\"ds-offer-meta\">Lucerne Publishing · Full-time · Remote</span></span><span class=\"ds-rate\">70,000 – 85,000 EUR/yr</span></div><div class=\"ds-row\"><span class=\"ds-mag\"><span class=\"ds-dot ds-weak\"></span></span><span class=\"ds-score ds-score-weak\">47</span><span class=\"ds-offer\"><a href=\"#\" class=\"ds-offer-title\">Senior React Native Engineer</a><span class=\"ds-offer-meta\">Margie’s Travel · Full-time · Remote</span></span><span class=\"ds-rate ds-unknown\">Rate unknown</span></div>",
+      "css": ".ds-row { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 16px; border-bottom: 1px solid var(--border, #cfd6e1); background: var(--card, #fbfcfd); color: var(--foreground, #0e1730); font: 400 14px Geist, ui-sans-serif, system-ui, sans-serif; font-variant-numeric: tabular-nums; transition: background-color 150ms; } .ds-row:hover { background: color-mix(in oklab, var(--accent, #e2e7ef) 55%, transparent); } .ds-selected { background: var(--accent, #e2e7ef); } .ds-mag { position: relative; display: inline-grid; place-items: center; width: 16px; height: 16px; flex-shrink: 0; } .ds-dot { border-radius: 9999px; } .ds-strong { width: 12px; height: 12px; background: var(--strong, #0e1730); } .ds-possible { width: 8px; height: 8px; background: var(--possible, #3d4b6b); } .ds-weak { width: 4px; height: 4px; background: var(--weak, #8791a6); } .ds-ring { position: absolute; inset: -4px; border-radius: 9999px; border: 1.5px solid var(--flashlight, #d63a1e); } .ds-score { width: 28px; font-weight: 600; } .ds-score-weak { color: var(--muted-foreground, #4b5670); } .ds-offer { display: flex; flex-direction: column; flex: 1; min-width: 0; } .ds-offer-title { font: italic 400 17px/1.2 Spectral, ui-serif, Georgia, serif; color: inherit; text-decoration: none; text-decoration-color: var(--flashlight, #d63a1e); text-underline-offset: 0.2em; } .ds-offer-title:hover { text-decoration: underline; } .ds-offer-title:focus-visible { outline: 1px solid var(--flashlight, #d63a1e); } .ds-offer-meta { font-size: 12px; line-height: 16px; color: var(--muted-foreground, #4b5670); } .ds-rate { text-align: right; white-space: nowrap; } .ds-unknown { color: var(--muted-foreground, #4b5670); }"
+    },
+    {
+      "name": "Figure Strip with Capacity Bar",
+      "kind": "custom",
+      "refersTo": "plate",
+      "description": "The dashboard's ruled figure strip; committed hours is a hard visible budget bar.",
+      "html": "<div class=\"ds-strip\"><div class=\"ds-cell\"><div class=\"ds-cell-label\">Offers</div><div class=\"ds-cell-fig\">108</div></div><div class=\"ds-cell\"><div class=\"ds-cell-label\">Strong</div><div class=\"ds-cell-fig\">6</div><div class=\"ds-cell-hint\">score 80+</div></div><div class=\"ds-cell\"><div class=\"ds-cell-label\">Committed hours</div><div class=\"ds-cell-fig\">24/40</div><div class=\"ds-bar\"><div class=\"ds-bar-fill\" style=\"width:60%\"></div></div></div></div>",
+      "css": ".ds-strip { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--border, #cfd6e1); border-radius: 3px; background: var(--card, #fbfcfd); color: var(--foreground, #0e1730); font-family: Geist, ui-sans-serif, system-ui, sans-serif; } .ds-cell { padding: 12px 16px; } .ds-cell + .ds-cell { border-left: 1px solid var(--border, #cfd6e1); } .ds-cell-label, .ds-cell-hint { font-size: 12px; color: var(--muted-foreground, #4b5670); } .ds-cell-fig { margin-top: 4px; font-size: 24px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; } .ds-bar { margin-top: 8px; height: 6px; border: 1px solid color-mix(in oklab, var(--foreground, #0e1730) 25%, transparent); } .ds-bar-fill { height: 100%; background: color-mix(in oklab, var(--foreground, #0e1730) 70%, transparent); }"
+    },
+    {
+      "name": "Save Bar",
+      "kind": "custom",
+      "refersTo": "plate",
+      "description": "Sticky settings save bar: opaque fill, hairline, 2px corners; with nothing unsaved only the buttons dim.",
+      "html": "<div class=\"ds-savebar\"><span class=\"ds-savebar-count\">No unsaved changes</span><span class=\"ds-savebar-actions\"><button class=\"ds-savebar-btn\">Discard</button><button class=\"ds-savebar-btn ds-savebar-primary\">Save</button></span></div>",
+      "css": ".ds-savebar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border: 1px solid var(--border, #cfd6e1); border-radius: 2px; background: var(--background, #f3f5f8); font: 400 14px Geist, ui-sans-serif, system-ui, sans-serif; max-width: 520px; } .ds-savebar-count { color: var(--muted-foreground, #4b5670); } .ds-savebar-actions { display: flex; gap: 8px; } .ds-savebar-actions button { opacity: 0.8; } .ds-savebar-btn { height: 32px; padding: 0 12px; border: 1px solid var(--border, #cfd6e1); border-radius: 3px; background: var(--background, #f3f5f8); color: var(--foreground, #0e1730); font: 500 14px Geist, ui-sans-serif, system-ui, sans-serif; cursor: pointer; } .ds-savebar-btn:hover { background: var(--accent, #e2e7ef); } .ds-savebar-btn:focus-visible { outline: 1px solid var(--flashlight, #d63a1e); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, #c2321a) 50%, transparent); } .ds-savebar-primary { border-color: transparent; background: var(--primary, #c2321a); color: var(--primary-foreground, #fff); } .ds-savebar-primary:hover { background: color-mix(in oklab, var(--primary, #c2321a) 90%, transparent); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Star Atlas",
+    "overview": "The search is a sky to chart, not a feed to scroll. Every offer is a star whose brightness is its score, plotted on one fixed magnitude ramp, and every screen is a plate of that atlas. Light theme is the printed atlas plate: cool chart paper with navy ink. Dark theme is the night chart: a deep navy ground, indigo plates and chalk ink. In both, the sidebar rail stays the night sky, and one red-flashlight vermilion marks whatever is live under the eye.\n\nThe system is dense and calm. Tables run on hairline rules at roughly 48px per offer row, panels are separated by rules rather than lifted by shadows, and corners stay square-ish (4px or less). Two voices split the work: Spectral italic names things (page titles, offer titles, company names, stage names, star labels), and Geist with tabular figures carries every label, count and number. Colour is withheld from data; magnitude is ink weight and size, never a hue.\n\nThe world deliberately refuses the category default of white rounded cards, a violet accent and coloured pill badges.",
+    "keyCharacteristics": [
+      "Score read as stellar magnitude: a dot whose diameter follows one fixed ramp (strong / possible / weak / unscored) on every screen.",
+      "One accent, the flashlight vermilion, owns every live state: selection, focus, the active nav icon, the primary action, the drag target, the unread count.",
+      "Spectral italic for names, Geist tabular for figures; never the other way round.",
+      "Hairline coordinate rules and tonal plates instead of shadows at rest.",
+      "A navy rail in both themes; light and dark are both first-class."
+    ],
+    "rules": [
+      {
+        "name": "The One Flashlight Rule",
+        "body": "Vermilion marks only what is live: selected, focused, active, primary, or being moved. If nothing on the plate is live, nothing on it is vermilion.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ink-Not-Hue Rule",
+        "body": "Score is never coloured. Magnitude is carried by dot diameter and ink weight; the only hue a score may wear is the flashlight ring, and only when the offer is selected or shortlisted.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Voices Rule",
+        "body": "Spectral italic names things; Geist measures them. Never set a number, label, button or table head in Spectral, and never set a page, offer, company or stage name in Geist.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Every table and every element marked as a count uses tabular figures, so columns of numbers align on the plate.",
+        "section": "typography"
+      },
+      {
+        "name": "The Ruled Plate Rule",
+        "body": "Nothing rests on a shadow. If two panels need separating at rest, draw a rule or change the plate tone.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** read every score through the magnitude dot on the fixed ramp (12 / 8 / 4px, dashed when unscored), on every screen that shows a score.",
+      "**Do** reserve vermilion for live state: selection, focus, the active nav icon, the primary action, drag, unread.",
+      "**Do** set page, offer, company and stage names in Spectral italic, and every number, label and control in Geist with tabular figures.",
+      "**Do** separate panels with 1px hairline rules and plate tone; keep corners at 4px or less.",
+      "**Do** keep transitions to 150 to 200ms colour and opacity changes, and let them snap under reduced motion.",
+      "**Do** keep the rail navy in both themes and design every screen in both plate and night."
+    ],
+    "donts": [
+      "**Don't** colour scores or use coloured score pills; magnitude is size and ink weight.",
+      "**Don't** introduce a second accent colour or use vermilion for decoration.",
+      "**Don't** put resting shadows on cards or plates; shadows are for floating and dragged layers only.",
+      "**Don't** use rounded cards above 4px or pill-shaped status badges.",
+      "**Don't** set labels, buttons or figures in Spectral, or names in Geist.",
+      "**Don't** add uppercase, letter-spaced section labels above titles; the Spectral title names the section on its own."
+    ]
+  }
+}

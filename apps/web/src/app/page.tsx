@@ -8,6 +8,7 @@ import {
   listSources,
   listStages,
   llmUsageByDay,
+  skyOffers,
 } from "@job-radar/db";
 import { AlertTriangle, Rss } from "lucide-react";
 import Link from "next/link";
@@ -22,25 +23,56 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { readPreferences, usingExampleProfile } from "@/lib/profile";
 import { IngestChart } from "./_dashboard/ingest-chart";
 import { PeriodSelect } from "./_dashboard/period-select";
+import { SkyChart } from "./_dashboard/sky-chart";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
+/** One figure of the strip: a plate cell, not a card (no hero-metric tiles). */
 function Stat({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
-    <Card className="gap-1 py-4">
-      <CardHeader className="px-4">
-        <CardDescription>{label}</CardDescription>
-      </CardHeader>
-      <CardContent className="px-4">
+    <div className="min-w-0 px-4 py-3">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div
+        className="mt-1 text-2xl font-semibold tracking-tight tabular-nums"
+        data-testid={`stat-${label.toLowerCase().replace(/\s+/g, "-")}`}
+      >
+        {value}
+      </div>
+      {hint ? <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p> : null}
+    </div>
+  );
+}
+
+/** Committed hours as a hard budget: a ruled bar against the weekly capacity. */
+function CapacityBar({ committed, capacity }: { committed: number; capacity: number }) {
+  const over = committed > capacity;
+  const pctFill = capacity > 0 ? Math.min(100, (committed / capacity) * 100) : 0;
+  return (
+    <div className="min-w-0 px-4 py-3">
+      <div className="text-xs text-muted-foreground">Committed hours</div>
+      <div
+        className="mt-1 text-2xl font-semibold tracking-tight tabular-nums"
+        data-testid="stat-committed-hours"
+      >
+        {committed}/{capacity}
+      </div>
+      <div
+        className="mt-2 h-1.5 w-full border border-foreground/25"
+        role="meter"
+        aria-label="Committed hours per week"
+        aria-valuemin={0}
+        aria-valuemax={capacity}
+        aria-valuenow={committed}
+      >
         <div
-          className="text-2xl font-semibold tabular-nums"
-          data-testid={`stat-${label.toLowerCase().replace(/\s+/g, "-")}`}
-        >
-          {value}
-        </div>
-        {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
-      </CardContent>
-    </Card>
+          className={over ? "h-full bg-destructive" : "h-full bg-foreground/70"}
+          style={{ width: `${pctFill}%` }}
+        />
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {over ? `${committed - capacity} h over the week` : "per week, active engagements"}
+      </p>
+    </div>
   );
 }
 
@@ -111,6 +143,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
     offer_received: "Offer",
   };
   const now = Date.parse(today + "T12:00:00Z");
+  const sky = skyOffers(d, { days: period, now: new Date() });
   const periodDays = Array.from({ length: period }, (_, i) =>
     new Date(now - (period - 1 - i) * 86_400_000).toISOString().slice(0, 10),
   );
@@ -136,7 +169,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
         </Alert>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
+      <div className="grid grid-cols-2 divide-x divide-y rounded-md border bg-card md:grid-cols-4 md:divide-y-0 lg:grid-cols-7 [&>*]:border-border">
         <Stat label="Offers" value={m.totals.offers} />
         <Stat label="Strong" value={m.totals.strong} hint="score 80+" />
         <Stat label="Possible" value={m.totals.possible} />
@@ -147,21 +180,31 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
         />
         <Stat label="Shortlisted" value={m.totals.shortlisted} />
         <Stat label="Applied" value={m.totals.applied} />
-        <Stat
-          label="Committed hours"
-          value={capacity ? `${m.committedHours}/${capacity.capacity}` : m.committedHours}
-          hint="per week, active engagements"
-        />
+        {capacity ? (
+          <CapacityBar committed={m.committedHours} capacity={capacity.capacity} />
+        ) : (
+          <Stat
+            label="Committed hours"
+            value={m.committedHours}
+            hint="per week, active engagements"
+          />
+        )}
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
+        <Card className="gap-4 lg:col-span-2">
           <CardHeader>
-            <CardTitle>Offers ingested per day</CardTitle>
-            <CardDescription>By source, including filtered offers.</CardDescription>
+            <CardTitle className="font-display text-xl font-normal">Tonight’s sky</CardTitle>
+            <CardDescription>
+              Open offers from the last {period} days by score and age. Larger stars score higher;
+              ringed ones are shortlisted.{" "}
+              <Link href="/offers" className="text-foreground underline">
+                Open as a list
+              </Link>
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <IngestChart points={m.ingestedPerDay} sources={sources} days={periodDays} />
+            <SkyChart offers={sky} days={period} now={new Date(now)} />
           </CardContent>
         </Card>
 
@@ -232,7 +275,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
         </Card>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Offers ingested per day</CardTitle>
+          <CardDescription>By source, including filtered offers.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <IngestChart points={m.ingestedPerDay} sources={sources} days={periodDays} />
+        </CardContent>
+      </Card>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
         <Card>
           <CardHeader>
             <CardTitle>Funnel</CardTitle>
@@ -242,7 +295,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
           </CardHeader>
           <CardContent className="overflow-x-auto">
             {m.totals.applied ? (
-              <table className="w-full text-sm" data-testid="funnel">
+              <table
+                className="w-full text-sm max-md:[&_td:not(:first-child)]:pl-3 max-md:[&_th:not(:first-child)]:pl-3"
+                data-testid="funnel"
+              >
                 <thead>
                   <tr className="text-left text-muted-foreground">
                     <th className="py-1 pr-2 font-medium">Source</th>
@@ -293,32 +349,38 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
           </CardHeader>
           <CardContent>
             {m.responses.length ? (
-              <table className="w-full text-sm" data-testid="responses">
-                <thead>
-                  <tr className="text-left text-muted-foreground">
-                    <th className="py-1 font-medium">Source</th>
-                    <th className="py-1 text-right font-medium">Applied</th>
-                    <th className="py-1 text-right font-medium">Responded</th>
-                    <th className="py-1 text-right font-medium">Rate</th>
-                    <th className="py-1 text-right font-medium">Median days</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {m.responses.map((r) => (
-                    <tr key={r.sourceId} className="border-t">
-                      <td className="py-1">{sourceName(r.sourceId)}</td>
-                      <td className="py-1 text-right tabular-nums">{r.applications}</td>
-                      <td className="py-1 text-right tabular-nums">{r.responded}</td>
-                      <td className="py-1 text-right tabular-nums">{pct(r.rate)}</td>
-                      <td className="py-1 text-right tabular-nums">
-                        {r.medianDaysToFirstResponse === null
-                          ? "—"
-                          : r.medianDaysToFirstResponse.toFixed(1)}
-                      </td>
+              // Columns keep their spacing; on a phone the table scrolls inside the card.
+              <div className="overflow-x-auto">
+                <table
+                  className="w-full text-sm max-md:[&_td:not(:first-child)]:pl-3 max-md:[&_th:not(:first-child)]:pl-3"
+                  data-testid="responses"
+                >
+                  <thead>
+                    <tr className="text-left text-muted-foreground">
+                      <th className="py-1 font-medium">Source</th>
+                      <th className="py-1 text-right font-medium">Applied</th>
+                      <th className="py-1 text-right font-medium">Responded</th>
+                      <th className="py-1 text-right font-medium">Rate</th>
+                      <th className="py-1 text-right font-medium">Median days</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {m.responses.map((r) => (
+                      <tr key={r.sourceId} className="border-t">
+                        <td className="py-1">{sourceName(r.sourceId)}</td>
+                        <td className="py-1 text-right tabular-nums">{r.applications}</td>
+                        <td className="py-1 text-right tabular-nums">{r.responded}</td>
+                        <td className="py-1 text-right tabular-nums">{pct(r.rate)}</td>
+                        <td className="py-1 text-right tabular-nums">
+                          {r.medianDaysToFirstResponse === null
+                            ? "—"
+                            : r.medianDaysToFirstResponse.toFixed(1)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <p className="text-sm text-muted-foreground">No applications in this period.</p>
             )}
@@ -348,34 +410,36 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
               </TabsList>
               {patterns.dimensions.map((dim) => (
                 <TabsContent key={dim.key} value={dim.key}>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-left text-muted-foreground">
-                        <th className="py-1 font-medium">{dim.label}</th>
-                        <th className="py-1 text-right font-medium">Applied</th>
-                        <th className="py-1 text-right font-medium">Responded</th>
-                        <th className="py-1 text-right font-medium">Interviews</th>
-                        <th className="py-1 text-right font-medium">Response rate</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dim.rows.map((r) => (
-                        <tr key={r.value} className="border-t">
-                          <td className="py-1">
-                            {dim.key === "source"
-                              ? sourceName(r.value)
-                              : dim.key === "engagement"
-                                ? (ENGAGEMENT_LABELS[r.value] ?? r.value)
-                                : r.value}
-                          </td>
-                          <td className="py-1 text-right tabular-nums">{r.applications}</td>
-                          <td className="py-1 text-right tabular-nums">{r.responded}</td>
-                          <td className="py-1 text-right tabular-nums">{r.interviewed}</td>
-                          <td className="py-1 text-right tabular-nums">{pct(r.rate)}</td>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm max-md:[&_td:not(:first-child)]:pl-3 max-md:[&_th:not(:first-child)]:pl-3">
+                      <thead>
+                        <tr className="text-left text-muted-foreground">
+                          <th className="py-1 font-medium">{dim.label}</th>
+                          <th className="py-1 text-right font-medium">Applied</th>
+                          <th className="py-1 text-right font-medium">Responded</th>
+                          <th className="py-1 text-right font-medium">Interviews</th>
+                          <th className="py-1 text-right font-medium">Response rate</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {dim.rows.map((r) => (
+                          <tr key={r.value} className="border-t">
+                            <td className="py-1">
+                              {dim.key === "source"
+                                ? sourceName(r.value)
+                                : dim.key === "engagement"
+                                  ? (ENGAGEMENT_LABELS[r.value] ?? r.value)
+                                  : r.value}
+                            </td>
+                            <td className="py-1 text-right tabular-nums">{r.applications}</td>
+                            <td className="py-1 text-right tabular-nums">{r.responded}</td>
+                            <td className="py-1 text-right tabular-nums">{r.interviewed}</td>
+                            <td className="py-1 text-right tabular-nums">{pct(r.rate)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </TabsContent>
               ))}
             </Tabs>

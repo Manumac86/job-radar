@@ -13,3 +13,6 @@ CLAUDE.md
 **/drizzle/
 packages/sources/test/fixtures/import/
 apps/desktop/build/
+
+# Impeccable working files (runtime state, comps, captures)
+**/.impeccable/

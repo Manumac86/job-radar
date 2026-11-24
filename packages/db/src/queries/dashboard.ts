@@ -300,3 +300,54 @@ export function responsePatterns(db: Db, opts: { since?: Date } = {}): ResponseP
     }),
   };
 }
+
+export interface SkyOffer {
+  id: number;
+  title: string;
+  companyName: string;
+  score: number;
+  scoreClass: "strong" | "possible" | "weak";
+  shortlisted: boolean;
+  firstSeenAt: Date;
+}
+
+/**
+ * Open, scored offers first seen in the period (the dashboard's star field): new or shortlisted,
+ * with no application. Newest first, capped so the chart stays legible.
+ */
+export function skyOffers(db: Db, opts: { days: number; now?: Date; limit?: number }): SkyOffer[] {
+  const since = new Date((opts.now ?? new Date()).getTime() - opts.days * 86_400_000);
+  const rows = db
+    .select({
+      id: offers.id,
+      title: offers.title,
+      companyName: offers.companyName,
+      score: offers.score,
+      scoreClass: offers.scoreClass,
+      triage: offers.triage,
+      firstSeenAt: offers.firstSeenAt,
+    })
+    .from(offers)
+    .leftJoin(applications, eq(applications.offerId, offers.id))
+    .where(
+      and(
+        gte(offers.firstSeenAt, since),
+        sql`${offers.triage} in ('new', 'shortlisted')`,
+        sql`${applications.id} is null`,
+        sql`${offers.score} is not null`,
+        sql`${offers.scoreClass} is not null`,
+      ),
+    )
+    .orderBy(sql`${offers.firstSeenAt} desc`)
+    .limit(opts.limit ?? 400)
+    .all();
+  return rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    companyName: r.companyName,
+    score: r.score ?? 0,
+    scoreClass: r.scoreClass ?? "weak",
+    shortlisted: r.triage === "shortlisted",
+    firstSeenAt: r.firstSeenAt,
+  }));
+}

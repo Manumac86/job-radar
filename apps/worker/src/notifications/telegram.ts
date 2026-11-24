@@ -14,6 +14,7 @@ import { Bot, GrammyError, HttpError, InlineKeyboard, type Context } from "gramm
 import { errorMessage, log } from "../log";
 import type { ProfileService } from "../profile-service";
 import { buildDigest, escapeHtml } from "./digest";
+import { linkBase } from "./links";
 
 /** A Telegram failure for the log: the API's description, or a network error with its cause. */
 export function telegramError(err: unknown): string {
@@ -220,16 +221,21 @@ export class TelegramService {
     });
   }
 
+  /** Base address for links to Job Radar, read for each message. */
+  private links(): string {
+    return linkBase(this.o.profile, this.o.webBaseUrl);
+  }
+
   format(n: Notification): string {
     const lines = [`<b>${escapeHtml(n.title)}</b>`, escapeHtml(n.body)];
     if (n.offerId) {
       const offer = getOffer(this.o.db, n.offerId);
-      lines.push(`<a href="${this.o.webBaseUrl}/offers/${n.offerId}">Open in Job Radar</a>`);
+      lines.push(`<a href="${this.links()}/offers/${n.offerId}">Open in Job Radar</a>`);
       if (offer && emailIdOf(n) === null) {
         lines.push(`<a href="${escapeHtml(offer.sourceUrl)}">Source page</a>`);
       }
     } else if (emailIdOf(n) !== null) {
-      lines.push(`<a href="${this.o.webBaseUrl}/pipeline">Open the pipeline</a>`);
+      lines.push(`<a href="${this.links()}/pipeline">Open the pipeline</a>`);
     }
     return lines.filter(Boolean).join("\n");
   }
@@ -266,9 +272,7 @@ export class TelegramService {
     if (!held.length) return 0;
     const lines = [`<b>While you were away (${held.length})</b>`];
     for (const n of held.slice(0, 20)) {
-      const link = n.offerId
-        ? ` — <a href="${this.o.webBaseUrl}/offers/${n.offerId}">open</a>`
-        : "";
+      const link = n.offerId ? ` — <a href="${this.links()}/offers/${n.offerId}">open</a>` : "";
       lines.push(`• ${escapeHtml(n.title)}${link}`);
     }
     if (held.length > 20) lines.push(`…and ${held.length - 20} more in the app.`);

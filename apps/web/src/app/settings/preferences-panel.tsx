@@ -47,7 +47,11 @@ const CURRENCIES = ["EUR", "USD", "GBP", "CHF", "CAD", "AUD", "SEK", "NOK", "DKK
 /** Lists and per-currency maps are saved as whole values; everything else per field. */
 const WHOLE_VALUES = new Set(["rates.min_hourly", "rates.target_hourly"]);
 /** Optional keys removed from the file when cleared. */
-const OPTIONAL = new Set(["rates.target_hourly", "location.max_overlap_required"]);
+const OPTIONAL = new Set([
+  "rates.target_hourly",
+  "location.max_overlap_required",
+  "notifications.link_base_url",
+]);
 
 const isPlain = (v: unknown): v is Record<string, unknown> =>
   v !== null && typeof v === "object" && !Array.isArray(v);
@@ -255,8 +259,8 @@ export function PreferencesPanel(props: PreferencesPanelProps) {
 
       <div
         className={cn(
-          "sticky bottom-0 z-10 -mx-1 flex items-center justify-between gap-3 rounded-md border bg-background/95 px-3 py-2 backdrop-blur",
-          !dirty && "opacity-80",
+          "sticky bottom-0 z-10 -mx-1 flex items-center justify-between gap-3 rounded-sm border bg-background px-3 py-2",
+          !dirty && "[&_button]:opacity-80",
         )}
       >
         <span className="text-sm text-muted-foreground" data-testid="unsaved-count">
@@ -377,7 +381,13 @@ function PreferencesForm({
     }
   }, []);
 
-  const text = (label: string, path: string, value: string | undefined, placeholder?: string) => (
+  const text = (
+    label: string,
+    path: string,
+    value: string | undefined,
+    placeholder?: string,
+    hint?: string,
+  ) => (
     <div className="space-y-1">
       <Label htmlFor={`pref-${path}`}>{label}</Label>
       <Input
@@ -385,10 +395,16 @@ function PreferencesForm({
         value={value ?? ""}
         placeholder={placeholder}
         aria-invalid={errs(path).length > 0}
+        aria-describedby={hint ? `pref-${path}-hint` : undefined}
         onChange={(e) =>
           set(path.split("."), OPTIONAL.has(path) && !e.target.value ? undefined : e.target.value)
         }
       />
+      {hint ? (
+        <p id={`pref-${path}-hint`} className="text-xs text-muted-foreground">
+          {hint}
+        </p>
+      ) : null}
       <FieldError messages={errs(path)} />
     </div>
   );
@@ -697,6 +713,13 @@ function PreferencesForm({
           />
           <FieldError messages={errs("notifications.follow_up_days")} />
         </div>
+        {text(
+          "Open links at",
+          "notifications.link_base_url",
+          v.notifications.link_base_url,
+          "https://my-mac.tailnet-name.ts.net",
+          "Where links in Telegram and the digest open. Leave it empty for this Mac. To open them on your phone, enter only your Tailscale address, without a path (see the remote access guide).",
+        )}
       </Section>
 
       <p className="text-sm text-muted-foreground">

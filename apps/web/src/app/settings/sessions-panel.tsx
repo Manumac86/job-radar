@@ -14,8 +14,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useIsRemote } from "@/hooks/use-is-remote";
 import { useDesktopBridge } from "@/lib/desktop";
 import { useBrowserInstall } from "./desktop-card";
+import { loginStep } from "./login-step";
 import { checkSiteSession, deleteBrowserProfile, finishLogin, startLogin } from "./actions";
 
 export interface SessionView {
@@ -37,10 +39,15 @@ const STATUS: Record<string, string> = {
 function BrowserMissing({ onClose }: { onClose: () => void }) {
   const bridge = useDesktopBridge();
   const browser = useBrowserInstall(bridge, onClose);
+  const remote = useIsRemote();
   return (
     <div className="space-y-2 rounded-md border p-3 text-sm" data-testid="browser-missing">
       <p className="font-medium">Chromium for logged-in sources is not installed (about 150 MB).</p>
-      {bridge ? (
+      {remote ? (
+        <p className="text-muted-foreground">
+          Install it at the Mac, where the login window opens, then click Log in again.
+        </p>
+      ) : bridge ? (
         <p className="text-muted-foreground">
           Download it once; then click Log in again. Nothing is downloaded until you confirm.
         </p>
@@ -74,9 +81,10 @@ export function SessionsPanel({ sessions }: { sessions: SessionView[] }) {
   } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [browserMissing, setBrowserMissing] = useState(false);
+  const remote = useIsRemote();
 
   return (
-    <Card>
+    <Card data-testid="sessions-panel">
       <CardHeader>
         <CardTitle>Site sessions</CardTitle>
         <CardDescription>
@@ -86,6 +94,12 @@ export function SessionsPanel({ sessions }: { sessions: SessionView[] }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {remote ? (
+          <p className="text-sm text-muted-foreground" data-testid="remote-login-note">
+            Job Radar is open through its remote address: the login window opens on the Mac, so log
+            in there.
+          </p>
+        ) : null}
         {browserMissing ? <BrowserMissing onClose={() => setBrowserMissing(false)} /> : null}
         {active ? (
           <div className="space-y-2 rounded-md border p-3 text-sm" data-testid="login-in-progress">
@@ -156,8 +170,10 @@ export function SessionsPanel({ sessions }: { sessions: SessionView[] }) {
                       if (r.ok)
                         setActive({
                           site: s.id,
-                          viewerUrl: r.viewerUrl ?? null,
-                          message: r.message ?? "",
+                          ...loginStep(remote, {
+                            viewerUrl: r.viewerUrl ?? null,
+                            message: r.message ?? "",
+                          }),
                         });
                       else if ("browserMissing" in r && r.browserMissing) setBrowserMissing(true);
                       else toast.error(r.error);

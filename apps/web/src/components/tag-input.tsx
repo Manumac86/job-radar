@@ -117,7 +117,11 @@ export function TagInput({
         aria-label={`${label} items`}
       >
         {value.map((v, i) => (
-          <Badge key={`${v}-${i}`} variant="secondary" className="gap-0.5 pr-0.5 text-xs">
+          <Badge
+            key={`${v}-${i}`}
+            variant="secondary"
+            className="max-w-full gap-0.5 pr-0.5 text-xs [&>button]:shrink-0"
+          >
             {value.length > 1 && (
               <button
                 type="button"
@@ -129,7 +133,10 @@ export function TagInput({
                 <ChevronLeft className="size-3" aria-hidden />
               </button>
             )}
-            <span className="max-w-[18rem] truncate">{v}</span>
+            {/* Long tags wrap inside the field instead of widening the page. */}
+            <span className="max-w-[18rem] min-w-0 whitespace-normal [overflow-wrap:anywhere]">
+              {v}
+            </span>
             {value.length > 1 && (
               <button
                 type="button"

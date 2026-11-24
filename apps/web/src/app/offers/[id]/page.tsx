@@ -16,7 +16,7 @@ import {
   peopleKnownForOffer,
   scoreHistory,
 } from "@job-radar/db";
-import { AlertTriangle, ExternalLink, FileText } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ExternalLink, FileText } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -42,8 +42,10 @@ import { companyCardData } from "@/lib/research";
 import { CompanyCard } from "./company-card";
 import { DraftsPanel } from "./drafts-panel";
 import { OfferActions } from "./offer-actions";
+import { backToOffersHref } from "../back-link";
 
 type Params = Promise<{ id: string }>;
+type SearchParams = Promise<{ list?: string | string[] }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const offer = getOffer(db(), Number((await params).id));
@@ -114,7 +116,14 @@ function SubScore({ label, value }: { label: string; value: number }) {
   );
 }
 
-export default async function OfferPage({ params }: { params: Params }) {
+export default async function OfferPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: SearchParams;
+}) {
+  const back = backToOffersHref((await searchParams).list);
   const offerId = Number((await params).id);
   if (!Number.isInteger(offerId)) notFound();
   const d = db();
@@ -180,18 +189,28 @@ export default async function OfferPage({ params }: { params: Params }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
+      <Link
+        href={back}
+        className="-mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="size-3.5" aria-hidden /> Back to offers
+      </Link>
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b pb-5">
+        <div className="min-w-0">
+          <div className="flex items-center gap-4">
             <ScoreBadge
               score={offer.score}
               scoreClass={offer.scoreClass}
               status={offer.scoreStatus}
+              ringed={offer.triage === "shortlisted"}
+              size="lg"
             />
-            <h1 className="text-2xl font-semibold tracking-tight">{offer.title}</h1>
+            <h1 className="font-display text-[2.125rem] leading-[1.05] text-balance">
+              {offer.title}
+            </h1>
           </div>
-          <p className="mt-1 text-muted-foreground">
-            {offer.companyName}
+          <p className="mt-2 text-muted-foreground">
+            <span className="font-display text-lg text-foreground">{offer.companyName}</span>
             {offer.companyWebsite ? (
               <>
                 {" · "}

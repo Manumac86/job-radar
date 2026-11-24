@@ -22,12 +22,12 @@ history and reruns the privacy scan. Public clones are not restricted.
 
 ```bash
 pnpm verify
-pnpm publish:sync "Release 0.5.0"     # privacy scan, then one commit on `public`
+pnpm publish:sync "Release 0.6.0"     # privacy scan, then one commit on `public`
 git push public public:main
 pnpm desktop:build                    # → apps/desktop/build/release/Job Radar-<v>-arm64.dmg
-pnpm release:images 0.5.0             # web + worker for amd64/arm64 → ghcr.io (needs docker login)
-gh release create v0.5.0 --repo Manumac86/job-radar --target main \
-  "apps/desktop/build/release/Job Radar-0.5.0-arm64.dmg#Job-Radar-0.5.0-arm64.dmg" \
+pnpm release:images 0.6.0             # web + worker for amd64/arm64 → ghcr.io (needs docker login)
+gh release create v0.6.0 --repo Manumac86/job-radar --target main \
+  "apps/desktop/build/release/Job Radar-0.6.0-arm64.dmg#Job-Radar-0.6.0-arm64.dmg" \
   docker-compose.release.yml
 ```
 

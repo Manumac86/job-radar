@@ -23,6 +23,7 @@ import {
   REMOTE_LABELS,
   type RateFields,
 } from "@/lib/format";
+import { OfferLink } from "./offer-link";
 
 export interface OfferRow extends RateFields {
   id: number;
@@ -83,16 +84,46 @@ const columns = helper.columns([
       const o = info.row.original;
       return (
         <div className="min-w-56">
-          <Link href={`/offers/${o.id}`} className="font-medium hover:underline">
+          <OfferLink
+            id={o.id}
+            className="font-display text-[1.0625rem] leading-[1.2] font-normal decoration-flashlight hover:underline"
+          >
             {o.title}
-          </Link>
-          <div className="text-xs text-muted-foreground">
+          </OfferLink>
+          <div className="text-xs leading-4 text-muted-foreground">
             {o.companyName} · {ENGAGEMENT_LABELS[o.engagementType] ?? o.engagementType} ·{" "}
             {REMOTE_LABELS[o.remotePolicy] ?? o.remotePolicy}
           </div>
         </div>
       );
     },
+  }),
+  helper.display({
+    id: "rate",
+    header: () => <SortHeader label="Rate" sortKey="rate" />,
+    cell: (info) => (
+      <span
+        className={
+          info.row.original.rateUnknown
+            ? "whitespace-nowrap text-sm text-muted-foreground"
+            : "whitespace-nowrap text-sm font-medium tabular-nums"
+        }
+      >
+        {formatRate(info.row.original)}
+      </span>
+    ),
+  }),
+  helper.accessor("sourceId", {
+    header: "Source",
+    cell: (info) => <span className="text-sm text-muted-foreground">{info.getValue()}</span>,
+  }),
+  helper.accessor("postedAt", {
+    header: () => <SortHeader label="Posted" sortKey="posted" />,
+    cell: (info) => (
+      <span className="whitespace-nowrap text-sm text-muted-foreground">
+        {formatRelative(new Date(info.getValue()))}
+      </span>
+    ),
   }),
   helper.accessor("status", {
     header: "Status",
@@ -110,25 +141,6 @@ const columns = helper.columns([
     cell: (info) => (
       <span className="whitespace-nowrap text-sm" data-testid="offer-pipeline">
         {info.getValue()}
-      </span>
-    ),
-  }),
-  helper.display({
-    id: "rate",
-    header: () => <SortHeader label="Rate" sortKey="rate" />,
-    cell: (info) => (
-      <span className="whitespace-nowrap text-sm">{formatRate(info.row.original)}</span>
-    ),
-  }),
-  helper.accessor("sourceId", {
-    header: "Source",
-    cell: (info) => <span className="text-sm text-muted-foreground">{info.getValue()}</span>,
-  }),
-  helper.accessor("postedAt", {
-    header: () => <SortHeader label="Posted" sortKey="posted" />,
-    cell: (info) => (
-      <span className="whitespace-nowrap text-sm text-muted-foreground">
-        {formatRelative(new Date(info.getValue()))}
       </span>
     ),
   }),
@@ -155,13 +167,59 @@ export function OffersTable({
   };
   const pages = Math.max(1, Math.ceil(total / pageSize));
   return (
-    <div className="rounded-lg border">
-      <Table data-testid="offers-table">
+    <div className="rounded-md border bg-card">
+      {/* Below md: one ruled two-line entry per offer instead of a clipped wide table. */}
+      <ol className="divide-y md:hidden" aria-label="Offers">
+        {data.length ? (
+          data.map((o) => (
+            <li key={o.id} className="flex gap-3 px-3 py-2.5">
+              <div className="w-14 shrink-0 pt-0.5">
+                <ScoreBadge
+                  score={o.score}
+                  scoreClass={o.scoreClass}
+                  status={o.scoreStatus}
+                  stacked
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <OfferLink
+                  id={o.id}
+                  className="font-display text-[1.0625rem] leading-[1.2] font-normal decoration-flashlight hover:underline"
+                >
+                  {o.title}
+                </OfferLink>
+                <div className="truncate text-xs leading-4 text-muted-foreground">
+                  {o.companyName} · {ENGAGEMENT_LABELS[o.engagementType] ?? o.engagementType}
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                  <span
+                    className={o.rateUnknown ? "text-muted-foreground" : "font-medium tabular-nums"}
+                  >
+                    {formatRate(o)}
+                  </span>
+                  <Badge variant="outline" className={STATUS_BADGE_CLASSES[o.status]}>
+                    {STATUS_LABELS[o.status]}
+                  </Badge>
+                  {o.pipeline ? <span className="text-muted-foreground">{o.pipeline}</span> : null}
+                </div>
+              </div>
+            </li>
+          ))
+        ) : (
+          <li className="px-3 py-8 text-center text-sm text-muted-foreground">
+            No offers match these filters.
+          </li>
+        )}
+      </ol>
+      <Table data-testid="offers-table" className="hidden md:table">
         <TableHeader>
           {table.getHeaderGroups().map((group) => (
             <TableRow key={group.id}>
               {group.headers.map((header) => (
-                <TableHead key={header.id}>
+                <TableHead
+                  key={header.id}
+                  className={header.column.id === "rate" ? "text-right" : undefined}
+                >
                   {header.isPlaceholder ? null : <table.FlexRender header={header} />}
                 </TableHead>
               ))}
@@ -176,7 +234,13 @@ export function OffersTable({
                   <TableCell
                     key={cell.id}
                     // Cells default to nowrap; let long titles wrap so the table fits the page.
-                    className={cell.column.id === "title" ? "w-full whitespace-normal" : undefined}
+                    className={
+                      cell.column.id === "title"
+                        ? "w-full whitespace-normal"
+                        : cell.column.id === "rate"
+                          ? "text-right"
+                          : undefined
+                    }
                   >
                     <table.FlexRender cell={cell} />
                   </TableCell>
@@ -185,7 +249,7 @@ export function OffersTable({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+              <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                 No offers match these filters.
               </TableCell>
             </TableRow>

@@ -29,6 +29,7 @@ import {
   type ActionResult,
 } from "./actions";
 import { DismissDialog } from "./dismiss-dialog";
+import { copyText } from "@/lib/clipboard";
 
 interface DraftRef {
   id: number;
@@ -91,8 +92,7 @@ export function OfferActions({
   const copy = async () => {
     const latest = drafts[0];
     if (!latest) return;
-    await navigator.clipboard.writeText(latest.message);
-    toast.success(`Draft v${latest.version} copied`);
+    await copyText(latest.message, `Draft v${latest.version} copied`);
   };
 
   return (

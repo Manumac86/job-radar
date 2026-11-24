@@ -255,3 +255,59 @@ describe("CV variants", () => {
     expect(loadVariants(dir).variants.map((v) => v.id)).toEqual(["tech-lead-2"]);
   });
 });
+
+describe("notifications.link_base_url (notifications spec, Links in messages)", () => {
+  const withLink = (url: string) =>
+    seedPrefs.replace(
+      "follow_up_days: [7]",
+      `follow_up_days: [7]\n  link_base_url: ${JSON.stringify(url)}`,
+    );
+
+  it("is unset in the example profile", () => {
+    const r = parsePreferences(seedPrefs);
+    if (!r.ok) throw new Error(r.errors.join("\n"));
+    expect(r.value.notifications.link_base_url).toBeUndefined();
+  });
+
+  it("keeps an http or https address, without its trailing slash", () => {
+    for (const [given, kept] of [
+      ["https://my-mac.tailnet-name.ts.net/", "https://my-mac.tailnet-name.ts.net"],
+      ["http://127.0.0.1:3300", "http://127.0.0.1:3300"],
+    ]) {
+      const r = parsePreferences(withLink(given!));
+      if (!r.ok) throw new Error(r.errors.join("\n"));
+      expect(r.value.notifications.link_base_url).toBe(kept);
+    }
+  });
+
+  it("refuses a path, a query or a fragment: links add their own path", () => {
+    for (const bad of [
+      "https://my-mac.tailnet-name.ts.net/offers",
+      "https://my-mac.tailnet-name.ts.net/?a=1&b=2",
+      'https://my-mac.tailnet-name.ts.net/"x',
+      "https://my-mac.tailnet-name.ts.net/#top",
+      "https://user:pw@my-mac.tailnet-name.ts.net",
+    ]) {
+      const r = parsePreferences(withLink(bad));
+      expect(r.ok, bad).toBe(false);
+      if (!r.ok)
+        expect(r.errors).toContain(
+          "notifications.link_base_url: must be only the address, such as https://my-mac.tailnet-name.ts.net, without a path",
+        );
+    }
+    const port = parsePreferences(withLink("https://my-mac.tailnet-name.ts.net:8443/"));
+    if (!port.ok) throw new Error(port.errors.join("\n"));
+    expect(port.value.notifications.link_base_url).toBe("https://my-mac.tailnet-name.ts.net:8443");
+  });
+
+  it("refuses an address without http:// or https://", () => {
+    for (const bad of ["my-mac", "ftp://my-mac.tailnet-name.ts.net", "https://"]) {
+      const r = parsePreferences(withLink(bad));
+      expect(r.ok, bad).toBe(false);
+      if (!r.ok)
+        expect(r.errors).toContain(
+          "notifications.link_base_url: must be an address starting with http:// or https://",
+        );
+    }
+  });
+});

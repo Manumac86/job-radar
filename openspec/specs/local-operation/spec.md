@@ -21,7 +21,7 @@ In the owner's private checkout, the repository MUST have no git remote other th
 - **THEN** the `origin` remote does not make it fail
 
 ### Requirement: Localhost only
-All services SHALL bind to 127.0.0.1, including published Docker ports, the web app, the worker API and the browser login viewer. In the macOS app, the worker and web server SHALL also bind to 127.0.0.1, and the app window SHALL load only those localhost pages.
+All services SHALL bind to 127.0.0.1, including published Docker ports, the web app, the worker API and the browser login viewer. In the macOS app, the worker and web server SHALL also bind to 127.0.0.1, and the app window SHALL load only those localhost pages. The only supported way to reach the app from another device SHALL be the owner's own private-network proxy to the 127.0.0.1 web port (remote-access spec); the worker API and the login viewer SHALL stay reachable only from the machine itself.
 
 #### Scenario: LAN access attempt
 - **WHEN** another device on the network requests the web app port
@@ -30,6 +30,10 @@ All services SHALL bind to 127.0.0.1, including published Docker ports, the web 
 #### Scenario: LAN access to the macOS app
 - **WHEN** another device on the network requests the macOS app's web or worker port
 - **THEN** the connection is refused
+
+#### Scenario: Phone on the owner's tailnet
+- **WHEN** the owner has pointed `tailscale serve` at the web port and opens the tailnet name on the phone
+- **THEN** the web app answers through that proxy, while the worker port still refuses connections from the phone
 
 ### Requirement: Local data and secrets
 All data (database, browser profile, profile files, logs) SHALL live under a local data directory: the repository's data directory mounted as Docker volumes, or `~/Library/Application Support/Job Radar` for the macOS app. Secrets (Telegram token, Claude Code OAuth token, mailbox app password) SHALL be read from files in a git-ignored secrets directory (in the macOS app, a secrets folder inside its data location readable only by the owner), never from committed files, and never written to logs.
@@ -89,3 +93,10 @@ None of them SHALL contain the owner's data, secrets or real profile.
 #### Scenario: App on another Mac
 - **WHEN** another person installs the disk image on an Apple Silicon Mac, opens it with right-click → Open, and chooses "Start fresh"
 - **THEN** the app starts with the example profile and none of the owner's data
+
+### Requirement: Bundled UI fonts
+The system SHALL ship the web UI's fonts with the app and SHALL NOT request fonts or other assets from a font service or CDN, when building or when running.
+
+#### Scenario: Offline start
+- **WHEN** the app is built and opened with no network connection
+- **THEN** every page renders in its own fonts and no request leaves 127.0.0.1

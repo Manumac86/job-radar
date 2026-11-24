@@ -242,6 +242,12 @@ Apply); its CSV import carries no risk at all.
   - an application you sent outside Job Radar is added to the pipeline.
 - **Read-only.** It never applies, quick-applies, marks a dream job, saves or withdraws.
 
+### Remote access (optional)
+
+To use Job Radar from your phone when you are away from the Mac, put it behind your own
+[Tailscale Serve](docs/remote-access.md). Only your tailnet can open it, over HTTPS, and Job
+Radar still listens only on `127.0.0.1`. Never use Tailscale Funnel.
+
 ### Backups
 
 A daily backup goes to `data/backups/`, and the last 14 are kept. To restore one from source,

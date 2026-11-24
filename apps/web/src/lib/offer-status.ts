@@ -14,14 +14,17 @@ export const STATUS_LABELS: Record<OfferStatus, string> = {
   ...(TRIAGE_LABELS as Record<Exclude<OfferStatus, "applied">, string>),
 };
 
-/** One theme token per status (globals.css): tinted background, border and text in that hue. */
+/** Status as a chart annotation (globals.css tokens): live states tinted, spent states quiet. */
 export const STATUS_BADGE_CLASSES: Record<OfferStatus, string> = {
-  applied: "border-status-applied/40 bg-status-applied/15 text-status-applied",
-  shortlisted: "border-status-shortlisted/40 bg-status-shortlisted/15 text-status-shortlisted",
-  new: "border-status-new/40 bg-status-new/15 text-status-new",
-  dismissed: "border-status-dismissed/40 bg-status-dismissed/15 text-status-dismissed",
-  filtered: "border-status-filtered/40 bg-status-filtered/15 text-status-filtered",
-  archived: "border-status-archived/40 bg-status-archived/15 text-status-archived",
+  applied: "rounded-sm border-status-applied/45 bg-status-applied/10 text-status-applied",
+  shortlisted:
+    "rounded-sm border-status-shortlisted/45 bg-status-shortlisted/10 text-status-shortlisted",
+  new: "rounded-sm border-border bg-transparent text-status-new",
+  dismissed:
+    "rounded-sm border-transparent bg-transparent text-status-dismissed line-through decoration-1",
+  filtered:
+    "rounded-sm border-dashed border-status-filtered/50 bg-transparent text-status-filtered",
+  archived: "rounded-sm border-transparent bg-transparent text-status-archived",
 };
 
 /** Pipeline column: the stage's label (custom stages included), empty without an application. */

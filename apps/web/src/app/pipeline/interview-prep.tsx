@@ -22,7 +22,7 @@ function List({ title, items }: { title: string; items: React.ReactNode[] }) {
   if (!items.length) return null;
   return (
     <div className="space-y-1.5">
-      <h4 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{title}</h4>
+      <h4 className="text-sm font-medium text-foreground">{title}</h4>
       <ul className="list-disc space-y-1.5 pl-5 text-sm">
         {items.map((item, i) => (
           <li key={i}>{item}</li>
@@ -146,9 +146,7 @@ export function InterviewPrepSection({ card }: { card: CardData }) {
             </Alert>
           ) : null}
           <div className="space-y-2">
-            <h4 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              Likely questions
-            </h4>
+            <h4 className="text-sm font-medium text-foreground">Likely questions</h4>
             {prep.plan.likely_questions.map((q) => (
               <details key={q.question} className="rounded-md border px-3 py-2 text-sm">
                 <summary className="cursor-pointer font-medium">{q.question}</summary>

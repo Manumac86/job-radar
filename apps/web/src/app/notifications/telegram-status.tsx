@@ -9,7 +9,7 @@ export async function TelegramStatus() {
     <Alert className="mb-4">
       <Send aria-hidden />
       <AlertTitle>Telegram is not connected — notifications stay in the app</AlertTitle>
-      <AlertDescription>
+      <AlertDescription className="[overflow-wrap:anywhere]">
         <ol className="list-decimal space-y-0.5 pl-5">
           {(res.data.howTo ?? []).map((step) => (
             <li key={step}>{step}</li>

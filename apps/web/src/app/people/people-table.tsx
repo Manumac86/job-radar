@@ -42,6 +42,71 @@ export interface PersonRow extends PersonView {
 
 type Editing = { person: PersonView | null; initial: PersonDraft };
 
+/** Edit, merge and delete; larger targets in the phone list (`touch`). */
+function PersonActions({
+  person,
+  touch = false,
+  onEdit,
+  onMerge,
+  onDelete,
+}: {
+  person: PersonRow;
+  touch?: boolean;
+  onEdit: () => void;
+  onMerge: () => void;
+  onDelete: () => void;
+}) {
+  const size = touch ? "size-9" : "size-7";
+  return (
+    <div className="flex shrink-0 justify-end gap-1">
+      <Button
+        variant="ghost"
+        size="icon"
+        className={size}
+        aria-label={`Edit ${person.name}`}
+        onClick={onEdit}
+      >
+        <Pencil className="size-3.5" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className={size}
+        aria-label={`Merge ${person.name}`}
+        onClick={onMerge}
+      >
+        <GitMerge className="size-3.5" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className={size}
+        aria-label={`Delete ${person.name}`}
+        onClick={onDelete}
+      >
+        <Trash2 className="size-3.5" />
+      </Button>
+    </div>
+  );
+}
+
+function PersonOffers({ person }: { person: PersonRow }) {
+  return person.offers.length ? (
+    <ul className="space-y-0.5 text-sm" data-testid="person-offers">
+      {person.offers.map((o) => (
+        <li key={o.id}>
+          <Link href={`/offers/${o.id}`} className="underline">
+            {o.title}
+          </Link>
+          <span className="text-muted-foreground"> · {o.companyName}</span>
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <span className="text-sm text-muted-foreground">No offers</span>
+  );
+}
+
 function MergeDialog({
   person,
   pending,
@@ -204,6 +269,15 @@ export function PeopleTable({ rows }: { rows: PersonRow[] }) {
       router.refresh();
     });
   const byId = new Map(rows.map((r) => [r.id, r]));
+  const actions = (p: PersonRow, touch = false) => (
+    <PersonActions
+      person={p}
+      touch={touch}
+      onEdit={() => open({ person: p, initial: draftOf(p) })}
+      onMerge={() => setMerging(p)}
+      onDelete={() => setDeleting(p)}
+    />
+  );
 
   return (
     <div className="space-y-4">
@@ -221,7 +295,30 @@ export function PeopleTable({ rows }: { rows: PersonRow[] }) {
       </div>
       {rows.length ? (
         <div className="rounded-md border">
-          <Table>
+          {/* Below md: one stacked entry per person, actions within reach (job-dashboard spec). */}
+          <ol className="divide-y md:hidden" aria-label="People">
+            {rows.map((p) => (
+              <li key={p.id} data-testid="people-entry" className="space-y-2 px-3 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-medium [overflow-wrap:anywhere]">{p.name}</div>
+                    {roleLine(p) ? (
+                      <div className="text-xs text-muted-foreground">{roleLine(p)}</div>
+                    ) : null}
+                  </div>
+                  {actions(p, true)}
+                </div>
+                {p.note ? (
+                  <div className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                    {p.note}
+                  </div>
+                ) : null}
+                <PersonContacts person={p} />
+                <PersonOffers person={p} />
+              </li>
+            ))}
+          </ol>
+          <Table className="hidden md:table">
             <TableHeader>
               <TableRow>
                 <TableHead>Person</TableHead>
@@ -248,52 +345,9 @@ export function PeopleTable({ rows }: { rows: PersonRow[] }) {
                     <PersonContacts person={p} />
                   </TableCell>
                   <TableCell className="whitespace-normal">
-                    {p.offers.length ? (
-                      <ul className="space-y-0.5 text-sm" data-testid="person-offers">
-                        {p.offers.map((o) => (
-                          <li key={o.id}>
-                            <Link href={`/offers/${o.id}`} className="underline">
-                              {o.title}
-                            </Link>
-                            <span className="text-muted-foreground"> · {o.companyName}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">No offers</span>
-                    )}
+                    <PersonOffers person={p} />
                   </TableCell>
-                  <TableCell>
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Edit ${p.name}`}
-                        onClick={() => open({ person: p, initial: draftOf(p) })}
-                      >
-                        <Pencil className="size-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Merge ${p.name}`}
-                        onClick={() => setMerging(p)}
-                      >
-                        <GitMerge className="size-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        aria-label={`Delete ${p.name}`}
-                        onClick={() => setDeleting(p)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    </div>
-                  </TableCell>
+                  <TableCell>{actions(p)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

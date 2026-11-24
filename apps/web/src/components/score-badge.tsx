@@ -1,19 +1,63 @@
 import { cn } from "@/lib/utils";
 
-const STYLES = {
-  strong: "bg-strong/15 text-strong ring-strong/30",
-  possible: "bg-possible/15 text-possible ring-possible/30",
-  weak: "bg-weak/15 text-weak ring-weak/30",
-} as const;
+type ScoreClass = "strong" | "possible" | "weak";
+
+/**
+ * Score as stellar magnitude (surface brief src-app, signature move): one fixed ramp on every
+ * screen. The dot's diameter carries the class; the figure carries the score. Colour stays ink:
+ * the only hue on a score is the flashlight ring, and only when the offer is selected.
+ */
+export const MAGNITUDE: Record<ScoreClass, { size: number; className: string; label: string }> = {
+  strong: { size: 12, className: "bg-strong", label: "Strong match" },
+  possible: { size: 8, className: "bg-possible", label: "Possible match" },
+  weak: { size: 4, className: "bg-weak", label: "Weak match" },
+};
+
+export function MagnitudeDot({
+  scoreClass,
+  ringed = false,
+  className,
+}: {
+  scoreClass: ScoreClass | null;
+  ringed?: boolean;
+  className?: string;
+}) {
+  const m = scoreClass ? MAGNITUDE[scoreClass] : null;
+  return (
+    <span
+      aria-hidden
+      className={cn("relative inline-grid size-4 shrink-0 place-items-center", className)}
+    >
+      {m ? (
+        <span
+          className={cn("rounded-full", m.className)}
+          style={{ width: m.size, height: m.size }}
+        />
+      ) : (
+        <span className="size-2 rounded-full border border-dashed border-weak" />
+      )}
+      {ringed ? (
+        <span className="absolute -inset-1 rounded-full border-[1.5px] border-flashlight" />
+      ) : null}
+    </span>
+  );
+}
 
 export function ScoreBadge({
   score,
   scoreClass,
   status,
+  ringed = false,
+  size = "md",
+  stacked = false,
 }: {
   score: number | null;
-  scoreClass: "strong" | "possible" | "weak" | null;
+  scoreClass: ScoreClass | null;
   status?: string;
+  ringed?: boolean;
+  size?: "md" | "lg";
+  /** Narrow columns (the phone offers list): a status label goes under the dot. */
+  stacked?: boolean;
 }) {
   if (score === null || !scoreClass) {
     const label =
@@ -24,17 +68,36 @@ export function ScoreBadge({
           : status === "scoring"
             ? "Scoring…"
             : "Awaiting";
-    return <span className="text-xs text-muted-foreground">{label}</span>;
+    return (
+      <span
+        className={cn(
+          "inline-flex text-xs text-muted-foreground",
+          stacked
+            ? "flex-col items-start gap-1 text-[0.6875rem] leading-none"
+            : "items-center gap-2",
+        )}
+      >
+        <MagnitudeDot scoreClass={null} />
+        {label}
+      </span>
+    );
   }
   return (
     <span
-      className={cn(
-        "inline-flex min-w-11 items-center justify-center rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums ring-1",
-        STYLES[scoreClass],
-      )}
-      title={`${scoreClass} match`}
+      className="inline-flex items-center gap-2"
+      title={MAGNITUDE[scoreClass].label}
+      data-score-class={scoreClass}
     >
-      {score}
+      <MagnitudeDot scoreClass={scoreClass} ringed={ringed} />
+      <span
+        className={cn(
+          "font-semibold tabular-nums",
+          size === "lg" ? "text-2xl tracking-tight" : "text-sm",
+          scoreClass === "weak" && "text-muted-foreground",
+        )}
+      >
+        {score}
+      </span>
     </span>
   );
 }

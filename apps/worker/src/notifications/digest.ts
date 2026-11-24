@@ -8,6 +8,7 @@ import {
 } from "@job-radar/db";
 import type { Notifier } from "../notifier";
 import type { ProfileService } from "../profile-service";
+import { linkBase } from "./links";
 import { offerRate } from "./messages";
 
 export function escapeHtml(s: string): string {
@@ -33,6 +34,7 @@ export function buildDigest(
   const top = [...strong, ...possible].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 5);
   const waiting = applicationsInStage(d.db, "applied");
   const tz = tzOf(d);
+  const base = linkBase(d.profile, d.webBaseUrl);
   const p = zonedParts(at, tz);
   const dayStart = new Date(at.getTime() - (p.hour * 60 + p.minute) * 60_000);
   const dayEnd = new Date(dayStart.getTime() + 86_400_000);
@@ -51,7 +53,7 @@ export function buildDigest(
       : "\nNo new strong or possible matches in the last 24 hours.",
     ...top.map(
       (o) =>
-        `• ${o.score} — <a href="${d.webBaseUrl}/offers/${o.id}">${escapeHtml(o.title)}</a> at ${escapeHtml(o.companyName)} (${escapeHtml(offerRate(o))})`,
+        `• ${o.score} — <a href="${base}/offers/${o.id}">${escapeHtml(o.title)}</a> at ${escapeHtml(o.companyName)} (${escapeHtml(offerRate(o))})`,
     ),
     `\n<b>Awaiting response:</b> ${waiting.length} application${waiting.length === 1 ? "" : "s"}`,
     interviews.length ? "\n<b>Interviews today</b>" : "",

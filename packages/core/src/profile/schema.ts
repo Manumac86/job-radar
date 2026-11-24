@@ -3,6 +3,32 @@ import type { CvVariant } from "./variants";
 
 const nonEmpty = z.string().trim().min(1, "must not be empty");
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'must be a 24-hour time like "08:30"');
+const linkBaseUrl = z
+  .string()
+  .trim()
+  .refine(isWebAddress, "must be an address starting with http:// or https://")
+  .refine(
+    isBareAddress,
+    "must be only the address, such as https://my-mac.tailnet-name.ts.net, without a path",
+  )
+  // Only the origin is kept, so links can append their path and the value is safe in an href.
+  .transform((url) => new URL(url).origin);
+
+function isWebAddress(value: string): boolean {
+  if (!/^https?:\/\//i.test(value)) return false;
+  try {
+    return new URL(value).hostname !== "";
+  } catch {
+    return false;
+  }
+}
+
+/** No path (a single trailing slash is fine), query, fragment or credentials. */
+function isBareAddress(value: string): boolean {
+  if (!isWebAddress(value)) return true; // reported by isWebAddress
+  const url = new URL(value);
+  return url.pathname === "/" && !url.search && !url.hash && !url.username && !url.password;
+}
 const currencyAmounts = z
   .record(
     z.string().regex(/^[A-Z]{3}$/, "currency keys must be ISO codes like EUR"),
@@ -113,6 +139,9 @@ export const preferencesSchema = z
         digest_time: time.default("08:30"),
         // Telegram reminders to follow up after this many days in "applied" without news.
         follow_up_days: z.array(z.number().int().min(1).max(90)).max(5).default([7]),
+        // "Open links at": where Telegram and digest links point, such as the tailnet address
+        // used from the phone. Unset: the local web address (notifications spec).
+        link_base_url: linkBaseUrl.optional(),
       })
       .default({
         quiet_hours: { start: "22:00", end: "08:00" },

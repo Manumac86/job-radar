@@ -24,7 +24,22 @@ export default defineConfig({
   workers: 1,
   reporter: [["list"]],
   use: { baseURL: `http://127.0.0.1:${port}`, trace: "retain-on-failure" },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: /phone\.spec\.ts/ },
+    {
+      // Phone width with touch (remote-access spec, design D8). Runs after the desktop tests.
+      name: "phone",
+      testMatch: /phone\.spec\.ts/,
+      dependencies: ["chromium"],
+      use: {
+        browserName: "chromium",
+        viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 3,
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
+  ],
   webServer: [
     {
       // Fresh seeded database for every run; the app must be built first (pnpm test:ui does it).

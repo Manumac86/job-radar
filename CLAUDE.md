@@ -4,7 +4,7 @@ Single-user, local-only, open-source app that finds remote jobs and freelance pr
 
 ## Non-negotiable rules
 
-1. **Local only at runtime.** Bind every port to 127.0.0.1. No telemetry, analytics or auto-update; never deploy the app anywhere. The code is open source (MIT), but this private checkout's history is never published: the only remote is `public`, and the only push is the clean `public` branch built by `pnpm publish:sync` (privacy scan against `secrets/private-terms.txt`), as `git push public public:main`. Never push `main`, and never publish anything from `data/` or `secrets/` (see `docs/publishing.md`).
+1. **Local only at runtime.** Bind every port to 127.0.0.1. The only route from another device is the owner's own `tailscale serve` to the 127.0.0.1 web port (`docs/remote-access.md`): the app never runs it, never binds anywhere else, keeps the worker and login viewer local, and refuses Funnel traffic. No telemetry, analytics or auto-update; never deploy the app anywhere. The code is open source (MIT), but this private checkout's history is never published: the only remote is `public`, and the only push is the clean `public` branch built by `pnpm publish:sync` (privacy scan against `secrets/private-terms.txt`), as `git push public public:main`. Never push `main`, and never publish anything from `data/` or `secrets/` (see `docs/publishing.md`).
 2. **No auto-submission.** Never write code that clicks apply/submit/send/connect/message, fills forms or sends emails or messages on third-party sites. Drafts are for the owner to send manually.
 3. **No stored site passwords.** Logged-in access only through the isolated Playwright profile where the owner logs in by hand (design D4).
 4. **No Anthropic API key.** LLM calls go through `packages/core/llm` (AI SDK v7 + `ai-sdk-provider-claude-code` v4) with tools disabled. The one exception is the company research agent (`createResearchClient`): it may use only WebSearch and Job Radar's own `read_page` tool (public GET, no cookies, private addresses refused), gated by `canUseTool`. Never give it, or any other call, shell, file, browser-profile, form, login or messaging tools, and never use `allowedTools` for it (bare entries bypass the gate).
@@ -17,6 +17,7 @@ pnpm workspaces + Turborepo (telemetry off, local cache only) · Node 22+ (worke
 
 ## Working agreement
 
+- Asks are tracked with askflow: run the `askflow` skill (five gates) before touching code; `askflow config` shows where the ledger lives (outside this repo). OpenSpec stays the spec tool. Gate 4 reviews the item's local branch against `main` (there is no PR host), and nothing merges without the owner's order.
 - Read the specs and `design.md` before each task group; if a spec is ambiguous, ask the owner instead of guessing, and update the change with `openspec-update-change` when a decision changes.
 - Each task lands with its own tests. Run `pnpm verify` before marking a group done.
 - Use the latest stable versions; check package docs when an API looks different from what you expect (Next.js 16, AI SDK v7 and Tailwind v4 changed several APIs).

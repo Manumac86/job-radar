@@ -4,7 +4,9 @@ import {
   insertPortalApplication,
   listNotifications,
 } from "@job-radar/db";
+import { readFileSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
+import { join } from "node:path";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
 import { Notifier } from "../src/notifier";
@@ -13,7 +15,7 @@ import { strongMatchNotification } from "../src/notifications/messages";
 import { HttpError } from "grammy";
 import { registerSecret } from "../src/log";
 import { TelegramService, telegramError } from "../src/notifications/telegram";
-import { seedScoredOffer, testContext } from "./helpers";
+import { seedScoredOffer, tempProfileDir, testContext } from "./helpers";
 
 const OWNER = "424242";
 const TOKEN = "123456:TEST-TOKEN";
@@ -56,9 +58,9 @@ async function mockTelegram(): Promise<{ apiRoot: string; calls: Call[] }> {
   return { apiRoot: `http://127.0.0.1:${(server!.address() as AddressInfo).port}`, calls };
 }
 
-async function setup(now: () => Date) {
+async function setup(now: () => Date, profileDir?: string) {
   const api = await mockTelegram();
-  const ctx = testContext();
+  const ctx = testContext(profileDir);
   const telegram = new TelegramService({
     token: TOKEN,
     ownerChatId: OWNER,
@@ -332,5 +334,79 @@ describe("telegramError", () => {
     expect(text).toContain("Network request for 'sendMessage' failed!");
     expect(text).toContain("bot[redacted]/sendMessage failed");
     expect(text).not.toContain("fake-bot-token");
+  });
+});
+
+describe("links in messages (notifications spec)", () => {
+  const PHONE = "https://my-mac.tailnet-name.ts.net";
+
+  /** The example profile with "Open links at" set (as typed, with a trailing slash). */
+  function profileOpeningLinksAt(url: string): string {
+    const dir = tempProfileDir();
+    const file = join(dir, "preferences.yaml");
+    const prefs = readFileSync(file, "utf8").replace(
+      "follow_up_days: [7]",
+      `follow_up_days: [7]\n  link_base_url: "${url}"`,
+    );
+    writeFileSync(file, prefs);
+    return dir;
+  }
+
+  /** A strong match alert, an email update (pipeline link), the digest and a held alert. */
+  async function messages(profileDir?: string) {
+    let now = new Date("2026-11-16T08:31:00Z"); // 08:31 Lisbon, after the digest time
+    const s = await setup(() => now, profileDir);
+    const { offer, score } = seedScoredOffer(s, 85);
+    s.db.$client
+      .prepare("update scores set created_at = ?")
+      .run(new Date("2026-11-16T08:00:00Z").getTime());
+    s.notifier.notify(strongMatchNotification(offer, score));
+    s.notifier.notify({
+      kind: "email_next_step",
+      title: "Reply from Northwind",
+      body: "Moved to Screening call.",
+      dedupeKey: "email:9:email_next_step",
+    });
+    const deps = {
+      db: s.db,
+      profile: s.profile,
+      notifier: s.notifier,
+      webBaseUrl: "http://localhost:3000",
+    };
+    expect(createDigestIfDue(deps, now)).toBe(true);
+    await s.flush(3);
+    now = new Date("2026-11-16T23:00:00Z"); // quiet hours: the next alert is held
+    const late = seedScoredOffer(s, 90);
+    s.notifier.notify(strongMatchNotification(late.offer, late.score));
+    now = new Date("2026-11-17T08:05:00Z");
+    expect(await s.telegram.flushHeld()).toBe(1);
+    const texts = sends(s.calls).map((c) => String(c.body["text"]));
+    const find = (marker: string) => texts.find((t) => t.includes(marker)) ?? "";
+    return {
+      offerId: offer.id,
+      lateId: late.offer.id,
+      alert: find("Strong match 85"),
+      pipeline: find("Reply from Northwind"),
+      digest: find("Daily digest"),
+      held: find("While you were away"),
+    };
+  }
+
+  it("point to the 'Open links at' address when it is set", async () => {
+    const m = await messages(profileOpeningLinksAt(`${PHONE}/`));
+    expect(m.alert).toContain(`href="${PHONE}/offers/${m.offerId}">Open in Job Radar`);
+    expect(m.pipeline).toContain(`href="${PHONE}/pipeline">Open the pipeline`);
+    expect(m.digest).toContain(`href="${PHONE}/offers/${m.offerId}"`);
+    expect(m.held).toContain(`href="${PHONE}/offers/${m.lateId}"`);
+    for (const text of [m.alert, m.pipeline, m.digest, m.held])
+      expect(text).not.toContain("localhost");
+  });
+
+  it("point to the local web address when it is not set", async () => {
+    const m = await messages();
+    expect(m.alert).toContain(`href="http://localhost:3000/offers/${m.offerId}"`);
+    expect(m.pipeline).toContain(`href="http://localhost:3000/pipeline"`);
+    expect(m.digest).toContain(`href="http://localhost:3000/offers/${m.offerId}"`);
+    expect(m.held).toContain(`href="http://localhost:3000/offers/${m.lateId}"`);
   });
 });

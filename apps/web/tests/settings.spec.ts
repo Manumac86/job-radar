@@ -205,3 +205,40 @@ test("how often email is checked is set in the Notifications section", async ({ 
   await expect(page.getByText(/^Saved/).first()).toBeVisible();
   expect(readFileSync(prefsFile, "utf8")).toContain("  check_minutes: 30 # how often");
 });
+
+test("'Open links at' keeps an https address and does not suggest rescoring", async ({ page }) => {
+  await page.goto("/settings");
+  const section = await openSection(page, "Notifications");
+  await section.getByLabel("Open links at").fill("https://my-mac.tailnet-name.ts.net");
+  await save(page);
+  await expect(page.getByText(/^Saved/).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Rescore open offers" })).toHaveCount(0);
+  // The key itself, not the commented example line in the seeded file.
+  const key = /^\s+link_base_url:\s*(\S+)/m;
+  expect(readFileSync(prefsFile, "utf8").match(key)?.[1]).toBe(
+    "https://my-mac.tailnet-name.ts.net",
+  );
+  // Kept after a reload; clearing it removes the key, so links go back to the local address.
+  await page.reload();
+  const reloaded = await openSection(page, "Notifications");
+  await expect(reloaded.getByLabel("Open links at")).toHaveValue(
+    "https://my-mac.tailnet-name.ts.net",
+  );
+  await reloaded.getByLabel("Open links at").fill("");
+  await save(page);
+  await expect(page.getByText(/^Saved/).first()).toBeVisible();
+  expect(readFileSync(prefsFile, "utf8")).not.toMatch(key);
+});
+
+test("'Open links at' without http:// or https:// shows the error and writes nothing", async ({
+  page,
+}) => {
+  await page.goto("/settings");
+  const section = await openSection(page, "Notifications");
+  await section.getByLabel("Open links at").fill("my-mac");
+  await save(page);
+  await expect(section.getByRole("alert")).toContainText(
+    "must be an address starting with http:// or https://",
+  );
+  expect(readFileSync(prefsFile, "utf8")).toBe(original);
+});
